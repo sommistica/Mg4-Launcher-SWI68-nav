@@ -1,8 +1,8 @@
 /* Local MBTiles only. No telemetry, remote fonts, geolocation API or route inference. */
 (function () {
     'use strict';
-    var map, marker, position, key = '', following = true, timer;
-    function unavailable(code) { OfflineMap.unavailable(typeof code === 'number' ? code : 3); }
+    var map, marker, position, key = '', following = true, timer, unhealthy = false;
+    function unavailable(code) { unhealthy = true; OfflineMap.unavailable(typeof code === 'number' ? code : 3); }
     function style(p) {
         var day = p.day;
         var road = day ? '#aeb7c0' : '#555e6a', major = day ? '#7c8794' : '#85909e';
@@ -34,6 +34,7 @@
         try {
             var nextKey = p.id + ':' + p.revision;
             if (!map) {
+                maplibregl.setWorkerUrl('https://offline.mg4.invalid/worker.js');
                 maplibregl.setWorkerCount(1);
                 map = new maplibregl.Map({container:'map',style:style(p),center:[p.lon,p.lat],zoom:14, minZoom:10,maxZoom:17,
                     maxTileCacheSize:32, pixelRatio:1, fadeDuration:0, antialias:false,
@@ -45,7 +46,7 @@
                 map.on('error',function (event) { unavailable(event.sourceId === 'local' ? 2 : 3); });
                 map.getCanvas().addEventListener('webglcontextlost',function () { unavailable(1); });
                 map.on('idle',function () {
-                    if (map.isStyleLoaded() && map.isSourceLoaded('local')) { clearTimeout(timer); OfflineMap.visible(key); }
+                    if (!unhealthy && map.isStyleLoaded() && map.isSourceLoaded('local')) { clearTimeout(timer); OfflineMap.visible(key); }
                 });
                 key = nextKey;
                 timer = setTimeout(function () { unavailable(4); },15000);
@@ -54,9 +55,13 @@
                 clearTimeout(timer); timer=setTimeout(function () { unavailable(4); },15000);
             }
             move();
-            if (map.isStyleLoaded() && map.isSourceLoaded('local') && map.areTilesLoaded()) OfflineMap.visible(key);
+            if (!unhealthy && map.isStyleLoaded() && map.isSourceLoaded('local') && map.areTilesLoaded()) OfflineMap.visible(key);
         } catch (e) { unavailable(); }
     };
-    window.addEventListener('error', unavailable);
-    OfflineMap.ready();
+    window.addEventListener('error', function (event) {
+        var name = event.error && event.error.name;
+        unavailable(name === 'ReferenceError' ? 5 : name === 'TypeError' ? 6 : 3);
+    });
+    if (typeof maplibregl === 'undefined' || typeof maplibregl.Map !== 'function') unavailable(7);
+    else OfflineMap.ready();
 }());

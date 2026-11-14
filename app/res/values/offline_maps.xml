@@ -44,4 +44,17 @@
     <string name="maps_drive_id" formatted="false">Drive ID: %s</string>
     <string name="maps_drive_folder" formatted="false">Map folder: %s</string>
     <string name="maps_choose_drive" formatted="false">Select the exact drive to use for maps. You can choose a different stick from the camera drive. Only drives mounted and exposed by Android are listed.</string>
+    <string name="maps_fallback_title" formatted="false">Map background</string>
+    <string name="maps_reason_disabled" formatted="false">Offline maps switched off</string>
+    <string name="maps_reason_storage" formatted="false">Selected map storage unavailable</string>
+    <string name="maps_reason_no_maps" formatted="false">No maps downloaded in this location</string>
+    <string name="maps_reason_paused" formatted="false">Map paused</string>
+    <string name="maps_reason_permission" formatted="false">Location permission unavailable</string>
+    <string name="maps_reason_no_gps" formatted="false">GPS unavailable on this device</string>
+    <string name="maps_reason_gps_off" formatted="false">Location provider switched off</string>
+    <string name="maps_reason_waiting" formatted="false">Waiting for a GPS fix</string>
+    <string name="maps_reason_stale" formatted="false">GPS fix too old or inaccurate</string>
+    <string name="maps_reason_coverage" formatted="false">No map data for this area</string>
+    <string name="maps_reason_loading" formatted="false">Preparing offline map…</string>
+    <string name="maps_reason_renderer" formatted="false">Map renderer error · retrying automatically</string>
 </resources>

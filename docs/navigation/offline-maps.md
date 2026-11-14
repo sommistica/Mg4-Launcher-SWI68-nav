@@ -191,3 +191,50 @@ files and partial downloads. Values use MiB and contain no paths or drive IDs.
 Filesystem used estimates include other files on that volume; map-only usage is
 reported separately. A fresh snapshot is taken whenever a general log is built,
 even if the map is disabled, plus periodic samples while the map is active.
+
+## WebView 66 compatibility / version 1.0.4.3-debug
+
+The original renderer failed on the car's WebView 66 because it requires newer
+JavaScript APIs. `compat.js` supplies globalThis, array flattening methods, and
+worker/MessagePort transfer-options adaptation. Both the page and a separately
+pinned MapLibre 4.7.1 CSP worker load the compatibility code before the renderer.
+The CSP worker SHA-256 is
+`86f6a52cae3b4dfb7141480ec8ed66a8cd6b763cd16d48a2dd7342d245094f98`.
+
+An isolated official Chromium 66.0.3347.0 snapshot successfully rendered actual
+offline Hamburg geometry in day/night themes, loaded local glyph data, and
+reported label features without script errors. This is a desktop engine test;
+the actual Android WebView/GPU and worker request interception still require
+in-car verification. Use `node tests/map_compat.test.js` for API regression checks.
+
+A failed renderer retries after 5 seconds, backing off to a maximum of 60 seconds.
+Successful display resets the delay. Stale fixes / renderer release no longer
+leave the failure flag permanently latched. Visibility refreshes are coalesced,
+and the WebView renders transparently behind the fallback while initializing
+instead of waiting for a frame from an invisible surface. Error callbacks use
+fixed categories; no raw JavaScript error messages or locations are logged.
+
+The vendor Debug.getMemoryInfo warning concerned the detailed process-memory
+query, not the Java heap or overall RAM metrics. That call has been removed.
+`maps.memory.launcherProcessRssMiB` now reads VmRSS from /proc/self/status, with
+`maps.memory.processMetricAvailable=false` and value -1 if unavailable. RSS is
+not PSS and does not include the separate WebView/GPU process. A RAM read failure
+no longer prevents independent disk metrics from being recorded.
+
+## Fallback status / version 1.0.4.4-debug
+
+The static map background has a small muted, themed two-line status at the
+lower-right, above the existing shortcut hint. It distinguishes maps switched
+off, unavailable selected storage, no downloaded maps, a paused map, missing
+location permission, missing/disabled GPS providers, waiting for a fix, stale or
+inaccurate fixes, no coverage for the current area, renderer startup and renderer
+failure with automatic retry. Switching the Maps toggle off deliberately shows
+the same status surface with the disabled reason, so it can be inspected without
+causing an error. English and Italian labels are provided.
+
+The WebView is only transparent during initialization, allowing it to produce
+its first WebGL frame while the static decoration remains visible. Once the map
+is ready, it is fully opaque, and the static decoration, gradient veil, shortcut
+hint and fallback status are hidden. Navigation instructions and missing-icon
+reporting remain visible independently of either background. If fallback is
+needed again, the static decoration and current reason are restored.

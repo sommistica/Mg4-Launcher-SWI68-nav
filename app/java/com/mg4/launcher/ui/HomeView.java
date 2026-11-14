@@ -916,11 +916,24 @@ public final class HomeView extends LinearLayout {
         // non è una mappa in miniatura ma una scorciatoia: lo dice un'etichetta in basso a destra
         View hint = shortcutHint(c, L.s(R.string.map_shortcut_hint));
         f.addView(hint, hintLp());
-        offlineMap.setDisplayListener(() -> {
+        TextView mapFallbackStatus = Ui.text(c, "", 14, t.sub, Ui.REGULAR);
+        mapFallbackStatus.setMaxWidth(dp(360));
+        mapFallbackStatus.setPadding(dp(12), dp(9), dp(12), dp(9));
+        mapFallbackStatus.setLineSpacing(dp(3), 1f);
+        mapFallbackStatus.setBackground(Ui.round(t.overlay, dp(12)));
+        mapFallbackStatus.setAlpha(0.85f);
+        FrameLayout.LayoutParams fallbackLp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
+        fallbackLp.setMargins(dp(20), 0, dp(20), dp(66));
+        f.addView(mapFallbackStatus, fallbackLp);
+        Runnable mapDisplayChanged = () -> {
             boolean showing = offlineMap.showingMap();
             veil.setVisibility(showing ? GONE : VISIBLE);
             hint.setVisibility(showing ? GONE : VISIBLE);
-        });
+            mapFallbackStatus.setText(L.s(R.string.maps_fallback_title) + "\n" + offlineMap.fallbackText());
+            mapFallbackStatus.setVisibility(showing ? GONE : VISIBLE);
+        };
+        offlineMap.setDisplayListener(mapDisplayChanged);
+        mapDisplayChanged.run();
         return f;
     }
 

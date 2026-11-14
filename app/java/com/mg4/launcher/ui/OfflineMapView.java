@@ -24,6 +24,9 @@ import java.util.concurrent.Executors;
 
 /** Local-only map surface. Location stays in memory and is never exposed to a remote WebView origin. */
 public final class OfflineMapView extends FrameLayout {
+    private enum Fallback { DISABLED, STORAGE, NO_MAPS, PAUSED, PERMISSION, NO_GPS, GPS_OFF, WAITING_GPS, STALE_GPS, NO_COVERAGE, LOADING, RENDERER }
+    private Fallback fallback = Fallback.DISABLED;
+    private final Bars.MapDecor decor;
     private static final String HOST = "offline.mg4.invalid";
     private final Theme theme;
     private final Prefs prefs;
@@ -35,8 +38,8 @@ public final class OfflineMapView extends FrameLayout {
     private WebView web;
     private Location fix;
     private boolean foreground = true, tracking, loaded, shown, failed, detached, releaseScheduled;
-    private int request, rendererId;
-    private long lastRevision = -1, nextMemorySample;
+    private int request, rendererId, failureCount;
+    private long lastRevision = -1, nextMemorySample, retryAt;
     private String source = "";
     private Runnable displayChanged;
     private final OfflineMaps.Listener mapListener = this::refresh;
@@ -45,7 +48,8 @@ public final class OfflineMapView extends FrameLayout {
         super(c); theme = t; prefs = p; maps = OfflineMaps.get(c);
         locations = (LocationManager) c.getSystemService(Context.LOCATION_SERVICE);
         MapDiagnostics.renderer(MapDiagnostics.Renderer.NOT_CREATED);
-        Bars.MapDecor decor = new Bars.MapDecor(c);
+        fallback = p.offlineMaps() ? Fallback.LOADING : Fallback.DISABLED;
+        decor = new Bars.MapDecor(c);
         decor.setColors(t.map, t.road, t.roadMinor);
         addView(decor, new LayoutParams(-1, -1));
         badge = Ui.text(c, "", 14, t.text, Ui.MEDIUM);
@@ -79,14 +83,53 @@ public final class OfflineMapView extends FrameLayout {
     private int dp(int n) { return Ui.dp(getContext(), n); }
     public void setDisplayListener(Runnable l) { displayChanged = l; }
     public boolean showingMap() { return shown; }
+    public String fallbackText() {
+        int resource;
+        switch (fallback) {
+            case STORAGE: resource = R.string.maps_reason_storage; break;
+            case NO_MAPS: resource = R.string.maps_reason_no_maps; break;
+            case PAUSED: resource = R.string.maps_reason_paused; break;
+            case PERMISSION: resource = R.string.maps_reason_permission; break;
+            case NO_GPS: resource = R.string.maps_reason_no_gps; break;
+            case GPS_OFF: resource = R.string.maps_reason_gps_off; break;
+            case WAITING_GPS: resource = R.string.maps_reason_waiting; break;
+            case STALE_GPS: resource = R.string.maps_reason_stale; break;
+            case NO_COVERAGE: resource = R.string.maps_reason_coverage; break;
+            case LOADING: resource = R.string.maps_reason_loading; break;
+            case RENDERER: resource = R.string.maps_reason_renderer; break;
+            default: resource = R.string.maps_reason_disabled;
+        }
+        return L.s(resource);
+    }
+    private void fallback(Fallback reason) {
+        if (fallback == reason) return;
+        fallback = reason;
+        if (displayChanged != null) displayChanged.run();
+    }
+    private Fallback locationFallback() {
+        boolean permitted = getContext().checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED
+                || getContext().checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        if (!permitted) return Fallback.PERMISSION;
+        if (locations == null) return Fallback.NO_GPS;
+        try {
+            java.util.List<String> all = locations.getAllProviders();
+            if (!all.contains(LocationManager.GPS_PROVIDER) && !all.contains(LocationManager.NETWORK_PROVIDER)) return Fallback.NO_GPS;
+            java.util.List<String> enabled = locations.getProviders(true);
+            if (!enabled.contains(LocationManager.GPS_PROVIDER) && !enabled.contains(LocationManager.NETWORK_PROVIDER)) return Fallback.GPS_OFF;
+        } catch (Exception ignored) { return Fallback.NO_GPS; }
+        return fix == null ? Fallback.WAITING_GPS : !fresh(fix) ? Fallback.STALE_GPS : null;
+    }
     public void setForeground(boolean value) { foreground = value; refresh(); }
 
     @SuppressLint("SetJavaScriptEnabled")
     private void createWeb() {
         if (web != null || failed || detached) return;
         try {
+            fallback(Fallback.LOADING);
             final int renderer = ++rendererId;
-            web = new WebView(getContext()); web.setVisibility(INVISIBLE);
+            web = new WebView(getContext()); web.setAlpha(0f); web.setVisibility(VISIBLE);
             MapDiagnostics.renderer(MapDiagnostics.Renderer.LOADING);
             android.content.pm.PackageInfo webPackage = WebView.getCurrentWebViewPackage();
             MapDiagnostics.version(webPackage == null ? null : webPackage.versionName);
@@ -99,9 +142,9 @@ public final class OfflineMapView extends FrameLayout {
             s.setSaveFormData(false); s.setMediaPlaybackRequiresUserGesture(true);
             web.addJavascriptInterface(new Object() {
                 @JavascriptInterface public void ready() { main.post(() -> { if (renderer != rendererId) return; loaded = true; MapDiagnostics.renderer(MapDiagnostics.Renderer.READY); update(); }); }
-                @JavascriptInterface public void visible(String key) { main.post(() -> { if (renderer == rendererId && eligible() && fresh(fix) && !source.isEmpty() && source.equals(key)) show(true); }); }
+                @JavascriptInterface public void visible(String key) { main.post(() -> { if (renderer == rendererId && !failed && eligible() && fresh(fix) && !source.isEmpty() && source.equals(key)) show(true); }); }
                 @JavascriptInterface public void unavailable(int reason) { main.post(() -> { if (renderer != rendererId) return;
-                    MapDiagnostics.scriptFailure(reason); failed = true; show(false); }); }
+                    MapDiagnostics.scriptFailure(reason); rendererFailed(); }); }
             }, "OfflineMap");
             web.setWebChromeClient(new WebChromeClient() {
                 @Override public boolean onConsoleMessage(ConsoleMessage m) { return true; } // no coordinates in logcat
@@ -110,21 +153,22 @@ public final class OfflineMapView extends FrameLayout {
                 @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return true; }
                 @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { return resource(r.getUrl()); }
                 @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
-                    if (v == web) { MapDiagnostics.failure(MapDiagnostics.Failure.PROCESS_EXIT); MapDiagnostics.renderer(MapDiagnostics.Renderer.FAILED); rendererId++; failed = true; loaded = false; show(false); web = null; }
+                    if (v == web) { MapDiagnostics.failure(MapDiagnostics.Failure.PROCESS_EXIT); MapDiagnostics.renderer(MapDiagnostics.Renderer.FAILED); rendererFailed(); rendererId++; loaded = false; web = null; }
                     removeView(v); v.destroy(); return true;
                 }
                 @Override public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
-                    if (v == web && r.isForMainFrame()) { MapDiagnostics.failure(MapDiagnostics.Failure.MAIN_DOCUMENT); MapDiagnostics.renderer(MapDiagnostics.Renderer.FAILED); failed = true; show(false); }
+                    if (v == web && r.isForMainFrame()) { MapDiagnostics.failure(MapDiagnostics.Failure.MAIN_DOCUMENT); MapDiagnostics.renderer(MapDiagnostics.Renderer.FAILED); rendererFailed(); }
                 }
             });
             addView(web, 1, new LayoutParams(-1, -1));
             web.loadUrl("https://" + HOST + "/index.html");
-        } catch (Exception e) { MapDiagnostics.failure(MapDiagnostics.Failure.CREATE); MapDiagnostics.renderer(MapDiagnostics.Renderer.FAILED); failed = true; show(false); }
+        } catch (Exception e) { MapDiagnostics.failure(MapDiagnostics.Failure.CREATE); MapDiagnostics.renderer(MapDiagnostics.Renderer.FAILED); rendererFailed(); }
     }
     private WebResourceResponse resource(Uri u) {
         try {
             if (!"https".equals(u.getScheme()) || !HOST.equals(u.getHost())) return response(null, "text/plain");
             String path = u.getPath();
+            if ("/favicon.ico".equals(path)) return response(new byte[0], "image/x-icon");
             if (path == null || path.contains("..")) return response(null, "text/plain");
             if (path.startsWith("/tiles/")) {
                 String[] p = path.split("/");
@@ -136,7 +180,13 @@ public final class OfflineMapView extends FrameLayout {
             try (java.io.InputStream in = getContext().getAssets().open("offline-map" + path)) {
                 return response(OfflineMaps.read(in, 2_000_000), mime);
             }
-        } catch (Exception e) { MapDiagnostics.failure(MapDiagnostics.Failure.RESOURCE); return response(null, "text/plain"); }
+        } catch (Exception e) {
+            String path = u.getPath();
+            MapDiagnostics.failure(path != null && path.startsWith("/fonts/") ? MapDiagnostics.Failure.GLYPHS
+                    : path != null && path.contains("worker") ? MapDiagnostics.Failure.WORKER
+                    : "/maplibre-gl.js".equals(path) || "/compat.js".equals(path) ? MapDiagnostics.Failure.LIBRARY : MapDiagnostics.Failure.RESOURCE);
+            return response(null, "text/plain");
+        }
     }
     private WebResourceResponse response(byte[] bytes, String mime) {
         boolean ok = bytes != null;
@@ -145,9 +195,14 @@ public final class OfflineMapView extends FrameLayout {
     }
     private void show(boolean value) {
         boolean changed = shown != value; shown = value;
-        if (value) MapDiagnostics.renderer(MapDiagnostics.Renderer.DISPLAYING);
+        decor.setVisibility(value ? GONE : VISIBLE);
+        if (value) { failureCount = 0; retryAt = 0; MapDiagnostics.retry(0); MapDiagnostics.renderer(MapDiagnostics.Renderer.DISPLAYING); }
         else if (changed && !failed) MapDiagnostics.renderer(MapDiagnostics.Renderer.HIDDEN);
-        if (web != null) web.setVisibility(value ? VISIBLE : INVISIBLE);
+        if (web != null) {
+            // Allow requestAnimationFrame/WebGL to initialize behind the fallback.
+            web.setAlpha(value ? 1f : 0f);
+            web.setVisibility(value || eligible() ? VISIBLE : INVISIBLE);
+        }
         badge.setVisibility(value ? VISIBLE : GONE); attribution.setVisibility(value ? VISIBLE : GONE); recenter.setVisibility(value ? VISIBLE : GONE);
         if (changed && displayChanged != null) displayChanged.run();
     }
@@ -164,13 +219,17 @@ public final class OfflineMapView extends FrameLayout {
         maps.refreshStorage();
         long revision = maps.revision();
         if (revision != lastRevision) {
-            lastRevision = revision; failed = false; loaded = false; source = "";
+            lastRevision = revision; failed = false; failureCount = 0; retryAt = 0; loaded = false; source = "";
             if (web != null) { rendererId++; WebView old = web; web = null; removeView(old); old.destroy(); }
             show(false);
         }
         boolean run = eligible();
         boolean any = false; for (OfflineMaps.Region r : maps.regions()) any |= maps.installed(r);
         run &= any;
+        if (!prefs.offlineMaps()) fallback(Fallback.DISABLED);
+        else if (!maps.storageAvailable()) fallback(Fallback.STORAGE);
+        else if (!any) fallback(Fallback.NO_MAPS);
+        else if (!eligible()) fallback(Fallback.PAUSED);
         if (run && !tracking && locations != null) {
             try {
                 for (String provider : locations.getProviders(true)) {
@@ -216,6 +275,14 @@ public final class OfflineMapView extends FrameLayout {
             com.mg4.launcher.svc.MapResourceDiagnostics.sample(getContext());
         }
     }
+    private void rendererFailed() {
+        if (failed) return;
+        failed = true;
+        fallback(Fallback.RENDERER);
+        long delay = Math.min(60_000L, 5000L << Math.min(failureCount++, 4));
+        retryAt = SystemClock.elapsedRealtime() + delay; MapDiagnostics.retry(delay);
+        show(false);
+    }
     private final Runnable releaseRenderer = this::releaseRenderer;
     private void releaseRenderer() {
         releaseScheduled = false; rendererId++; loaded = false; source = ""; show(false);
@@ -232,8 +299,16 @@ public final class OfflineMapView extends FrameLayout {
     };
     private void update() {
         final int token = ++request;
-        if (!eligible() || !fresh(fix)) { MapDiagnostics.coverage(false); show(false); if (web != null) releaseRenderer.run(); return; }
-        if (failed) { show(false); return; }
+        if (!eligible()) { MapDiagnostics.coverage(false); show(false); if (web != null) releaseRenderer.run(); return; }
+        Fallback locationReason = locationFallback();
+        if (locationReason != null) {
+            fallback(locationReason); MapDiagnostics.coverage(false); show(false);
+            if (web != null) releaseRenderer.run(); return;
+        }
+        if (failed) {
+            if (SystemClock.elapsedRealtime() < retryAt) { fallback(Fallback.RENDERER); show(false); return; }
+            releaseRenderer(); failed = false;
+        }
         final Location position = new Location(fix);
         io.execute(() -> {
             OfflineMaps.Coverage c = maps.coverage(position.getLatitude(), position.getLongitude());
@@ -241,7 +316,7 @@ public final class OfflineMapView extends FrameLayout {
             main.post(() -> {
                 if (token != request || !eligible()) return;
                 MapDiagnostics.coverage(c != null);
-                if (c == null) { source = ""; show(false); if (web != null) releaseRenderer.run(); return; }
+                if (c == null) { fallback(Fallback.NO_COVERAGE); source = ""; show(false); if (web != null) releaseRenderer.run(); return; }
                 createWeb(); if (!loaded || web == null) return;
                 try {
                     JSONObject j = new JSONObject();
@@ -252,13 +327,18 @@ public final class OfflineMapView extends FrameLayout {
                     if (!key.equals(source)) { show(false); source = key; }
                     badge.setText(L.s(R.string.maps_offline_badge) + " · " + c.region.name);
                     web.evaluateJavascript("window.updatePosition(" + j.toString() + ")", null);
-                } catch (Exception ignored) { show(false); }
+                } catch (Exception ignored) { rendererFailed(); }
             });
         });
     }
     @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); maps.addListener(mapListener); refresh(); }
-    @Override protected void onVisibilityChanged(View v, int visibility) { super.onVisibilityChanged(v, visibility); if (maps != null) refresh(); }
-    @Override protected void onWindowVisibilityChanged(int v) { super.onWindowVisibilityChanged(v); if (maps != null) refresh(); }
+    private final Runnable visibilityRefresh = this::refresh;
+    private void settleVisibility() {
+        if (maps == null || detached) return;
+        main.removeCallbacks(visibilityRefresh); main.post(visibilityRefresh);
+    }
+    @Override protected void onVisibilityChanged(View v, int visibility) { super.onVisibilityChanged(v, visibility); settleVisibility(); }
+    @Override protected void onWindowVisibilityChanged(int v) { super.onWindowVisibilityChanged(v); settleVisibility(); }
     @Override protected void onDetachedFromWindow() {
         rendererId++; detached = true; foreground = false; refresh(); maps.removeListener(mapListener); main.removeCallbacksAndMessages(null);
         io.shutdownNow(); if (web != null) { removeView(web); web.destroy(); web = null; }

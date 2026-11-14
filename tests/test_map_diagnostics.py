@@ -20,8 +20,12 @@ public final class Diag {
 }''', encoding="utf-8")
             probe = temp / "Probe.java"
             probe.write_text('''import com.mg4.launcher.svc.MapDiagnostics;
+import com.mg4.launcher.svc.ProcessMemory;
 public class Probe {
  public static void main(String[] args) {
+  if (ProcessMemory.rssBytes("VmRSS: 81920 kB") != 80L * 1048576) throw new AssertionError();
+  if (ProcessMemory.rssBytes("VmRSS: unavailable") != -1) throw new AssertionError();
+  if (ProcessMemory.rssBytes("VmRSS: 99999999999999999999 kB") != -1) throw new AssertionError();
   MapDiagnostics.gps(true, true, false, true, true, false, false, false);
   MapDiagnostics.fix(true, false);
   MapDiagnostics.renderer(MapDiagnostics.Renderer.READY);
@@ -36,7 +40,8 @@ public class Probe {
  }
 }''', encoding="utf-8")
             subprocess.run(["javac", "-encoding", "UTF-8", "-d", str(temp), str(stub),
-                            str(root / "app/java/com/mg4/launcher/svc/MapDiagnostics.java"), str(probe)], check=True, capture_output=True)
+                            str(root / "app/java/com/mg4/launcher/svc/MapDiagnostics.java"),
+                            str(root / "app/java/com/mg4/launcher/svc/ProcessMemory.java"), str(probe)], check=True, capture_output=True)
             text = subprocess.run(["java", "-cp", str(temp), "Probe"], check=True, capture_output=True, text=True).stdout
             self.assertIn("maps.gps.fix=stale_or_inaccurate", text)
             self.assertIn("maps.webViewVersion=123.0.6312.80", text)
@@ -45,7 +50,7 @@ public class Probe {
             self.assertIn("maps.storage.removableCount=32", text)
             self.assertIn("maps.download.httpStatus=0", text)
             self.assertIn("maps.memory.systemUsedEstimateMiB=1536", text)
-            self.assertIn("maps.memory.launcherProcessPssMiB=80", text)
+            self.assertIn("maps.memory.launcherProcessRssMiB=80", text)
             self.assertIn("maps.disk.internalUsedEstimateMiB=6000", text)
             self.assertIn("maps.disk.mapFilesMiB=500", text)
             self.assertIn("maps.disk.partialDownloadsMiB=50", text)

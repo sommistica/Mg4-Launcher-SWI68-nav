@@ -5,7 +5,7 @@ import java.util.Locale;
 /** Map diagnostics accept fixed states/counters only, never positions, paths, URLs or exception messages. */
 public final class MapDiagnostics {
     public enum Renderer { NOT_CREATED, LOADING, READY, DISPLAYING, HIDDEN, RELEASED, FAILED }
-    public enum Failure { CREATE, MAIN_DOCUMENT, PROCESS_EXIT, WEBGL, TILE_SOURCE, SCRIPT, TIMEOUT, RESOURCE, DOWNLOAD, CHECKSUM, PACKAGE, STORAGE_SPACE, STORAGE_ACCESS }
+    public enum Failure { CREATE, MAIN_DOCUMENT, PROCESS_EXIT, WEBGL, TILE_SOURCE, SCRIPT, TIMEOUT, RESOURCE, LIBRARY, WORKER, GLYPHS, REFERENCE, TYPE, DOWNLOAD, CHECKSUM, PACKAGE, STORAGE_SPACE, STORAGE_ACCESS }
     public enum Download { IDLE, DOWNLOADING, VERIFYING, PAUSED, FAILED, INSTALLED }
     private MapDiagnostics() {}
 
@@ -30,7 +30,7 @@ public final class MapDiagnostics {
     public static void renderer(Renderer state) { Diag.put("maps.renderer", state.name().toLowerCase(Locale.ROOT)); }
     public static void failure(Failure reason) { Diag.put("maps.lastFailure", reason.name().toLowerCase(Locale.ROOT)); }
     public static void scriptFailure(int code) {
-        failure(code == 1 ? Failure.WEBGL : code == 2 ? Failure.TILE_SOURCE : code == 4 ? Failure.TIMEOUT : Failure.SCRIPT);
+        failure(code == 1 ? Failure.WEBGL : code == 2 ? Failure.TILE_SOURCE : code == 4 ? Failure.TIMEOUT : code == 5 ? Failure.REFERENCE : code == 6 ? Failure.TYPE : code == 7 ? Failure.LIBRARY : Failure.SCRIPT);
         renderer(Renderer.FAILED);
     }
     public static void version(String version) {
@@ -44,6 +44,7 @@ public final class MapDiagnostics {
         Diag.put("maps.packages.installedCount", Math.max(0, Math.min(1000, installedCount)));
     }
     public static void download(Download state) { Diag.put("maps.download.state", state.name().toLowerCase(Locale.ROOT)); }
+    public static void retry(long delayMs) { Diag.putQuiet("maps.rendererRetrySeconds", delayMs / 1000); }
     public static void http(int code) { Diag.put("maps.download.httpStatus", code >= 100 && code <= 599 ? code : 0); }
     public static void memory(long heapUsed, long heapMax, long systemAvailable, boolean low) {
         Diag.putQuiet("maps.memory.javaUsedMiB", mib(heapUsed));
@@ -51,10 +52,12 @@ public final class MapDiagnostics {
         Diag.putQuiet("maps.memory.systemAvailableMiB", mib(systemAvailable));
         Diag.put("maps.memory.systemLow", low);
     }
-    public static void systemMemory(long total, long available, long processPss) {
+    public static void systemMemory(long total, long available, long processRss) {
         Diag.putQuiet("maps.memory.systemTotalMiB", mib(total));
         Diag.putQuiet("maps.memory.systemUsedEstimateMiB", mib(Math.max(0, total - available)));
-        Diag.putQuiet("maps.memory.launcherProcessPssMiB", mib(processPss));
+        Diag.putQuiet("maps.memory.launcherProcessRssMiB", processRss < 0 ? -1 : mib(processRss));
+        Diag.put("maps.memory.processMetricAvailable", processRss >= 0);
+        Diag.put("maps.memory.processMetric", "rss_proc_self_status");
     }
     public static void internalDisk(long total, long free) {
         Diag.putQuiet("maps.disk.internalTotalMiB", mib(total));

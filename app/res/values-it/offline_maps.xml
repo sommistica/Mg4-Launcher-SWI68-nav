@@ -44,4 +44,17 @@
     <string name="maps_drive_id" formatted="false">ID unità: %s</string>
     <string name="maps_drive_folder" formatted="false">Cartella mappe: %s</string>
     <string name="maps_choose_drive" formatted="false">Seleziona l\'unità da usare per le mappe. Puoi scegliere una chiavetta diversa da quella delle telecamere. Sono elencate solo le unità montate ed esposte da Android.</string>
+    <string name="maps_fallback_title" formatted="false">Sfondo mappa</string>
+    <string name="maps_reason_disabled" formatted="false">Mappe offline disattivate</string>
+    <string name="maps_reason_storage" formatted="false">Memoria delle mappe non disponibile</string>
+    <string name="maps_reason_no_maps" formatted="false">Nessuna mappa scaricata in questa memoria</string>
+    <string name="maps_reason_paused" formatted="false">Mappa in pausa</string>
+    <string name="maps_reason_permission" formatted="false">Permesso di posizione non disponibile</string>
+    <string name="maps_reason_no_gps" formatted="false">GPS non disponibile sul dispositivo</string>
+    <string name="maps_reason_gps_off" formatted="false">Servizio di posizione disattivato</string>
+    <string name="maps_reason_waiting" formatted="false">In attesa della posizione GPS</string>
+    <string name="maps_reason_stale" formatted="false">Posizione GPS vecchia o imprecisa</string>
+    <string name="maps_reason_coverage" formatted="false">Nessun dato cartografico per questa zona</string>
+    <string name="maps_reason_loading" formatted="false">Preparazione della mappa offline…</string>
+    <string name="maps_reason_renderer" formatted="false">Errore di visualizzazione · nuovo tentativo automatico</string>
 </resources>
