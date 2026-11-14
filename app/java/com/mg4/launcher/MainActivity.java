@@ -535,6 +535,7 @@ public final class MainActivity extends Activity implements HomeView.Host, AppsV
     @Override
     protected void onPause() {
         inFront = false;
+        if (home != null) home.setMapForeground(false);
         super.onPause();
     }
 
@@ -542,6 +543,7 @@ public final class MainActivity extends Activity implements HomeView.Host, AppsV
     protected void onResume() {
         super.onResume();
         inFront = true;
+        if (home != null) home.setMapForeground(true);
         com.mg4.launcher.svc.RetroReturn.noteLauncherShown("ritorno nello stack (la telecamera era sopra il launcher)");
         // 1.0.3: tornando dall'app Radio l'elenco delle stazioni si rilegge subito
         if (media != null) media.refreshRadioLists("ritorno nel launcher");

@@ -97,12 +97,12 @@ public final class NavClient {
                         pushTurnMeters = data.readInt();
                         String dir = data.readString();
                         pushTurnText = dir == null ? "" : dir.trim();
-                        Diag.put("nav.push.manovra", pushTurnMeters + " m · icona " + pushTurnIcon + " · " + pushTurnText);
+                        Diag.put("nav.push.manovra", pushTurnMeters + " m · icona " + pushTurnIcon + " · " + ManeuverReport.instructionType(pushTurnText));
                         break;
                     case 3: // roadInfoChange(String)
                         String road = data.readString();
                         pushRoad = road == null ? "" : road.trim();
-                        Diag.put("nav.push.via", pushRoad);
+                        // Road is display-only; never include it in diagnostic logs.
                         break;
                     case 12: // remainingTimesChange(int)
                         pushRemainS = data.readInt();
@@ -264,11 +264,11 @@ public final class NavClient {
                 s.navigating = mapNav || status > 0 || moving;
                 Diag.put("nav.segnali", "isMapNavigating " + mapNav + " · statoGuida " + status
                         + " · rim. " + s.remainMeters + " m / " + s.remainSeconds + " s");
-                Diag.put("nav.prossimaManovra", s.turnMeters + " m · icona " + s.turnIcon + " · " + s.turnText);
+                Diag.put("nav.prossimaManovra", s.turnMeters + " m · icona " + s.turnIcon + " · " + ManeuverReport.instructionType(s.turnText));
                 int unit = Rpc.callInt(b, GS, DIST_UNIT);
                 com.mg4.launcher.ui.Units.navUnit = unit;   // 1.0.0: serve per le miglia
                 Diag.put("nav.unitaDistanza", unit);
-                Diag.put("nav.via", s.road);
+                // Road is display-only; never include it in diagnostic logs.
                 Diag.put("nav.app", s.mapPackage);
                 Diag.put("nav.appAttiva", Rpc.callBool(b, GS, NAV_ACTIVE));
             } catch (Exception e) {

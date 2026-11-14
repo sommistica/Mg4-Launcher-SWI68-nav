@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Separate from generated strings.xml; English fallback for other locales. -->
+<resources>
+    <string name="maps_title" formatted="false">Mappe</string>
+    <string name="maps_subtitle" formatted="false">Mappe offline e download</string>
+    <string name="maps_enable" formatted="false">Mappe offline</string>
+    <string name="maps_enable_sub" formatted="false">Segui la posizione con le regioni scaricate</string>
+    <string name="maps_wifi" formatted="false">Scarica solo tramite Wi-Fi</string>
+    <string name="maps_wifi_sub" formatted="false">Il download si interrompe se il Wi-Fi si disconnette</string>
+    <string name="maps_fallback" formatted="false">Senza una posizione GPS recente o copertura locale viene mostrato lo sfondo standard. Le istruzioni di navigazione restano disponibili.</string>
+    <string name="maps_regions" formatted="false">REGIONI</string>
+    <string name="maps_source" formatted="false">Dati OpenStreetMap da Librescoot. Pacchetti completi; visualizzazione semplificata senza edifici. Nessun percorso evidenziato o traffico in tempo reale.</string>
+    <string name="maps_download" formatted="false">Scarica</string>
+    <string name="maps_resume" formatted="false">Riprendi</string>
+    <string name="maps_pause" formatted="false">Pausa</string>
+    <string name="maps_update" formatted="false">Aggiorna</string>
+    <string name="maps_delete" formatted="false">Elimina</string>
+    <string name="maps_delete_confirm" formatted="false">Eliminare questa mappa e gli eventuali download parziali?</string>
+    <string name="maps_installed" formatted="false">Installata</string>
+    <string name="maps_not_installed" formatted="false">Non scaricata</string>
+    <string name="maps_progress" formatted="false">Download %s / %s</string>
+    <string name="maps_verifying" formatted="false">Verifica del download…</string>
+    <string name="maps_paused" formatted="false">In pausa; riprendi quando il Wi-Fi è disponibile</string>
+    <string name="maps_failed" formatted="false">Download non riuscito; controlla connessione e spazio libero, poi riprova</string>
+    <string name="maps_storage" formatted="false">Mappe e download parziali: %s · Liberi: %s</string>
+    <string name="maps_recenter" formatted="false">Centra la mappa</string>
+    <string name="maps_offline_badge" formatted="false">Offline</string>
+    <string name="missing_icon_send" formatted="false">Invia la segnalazione di icona mancante allo sviluppatore</string>
+    <string name="missing_icon_code" formatted="false">Icona mancante: codice %d</string>
+    <string name="missing_icon_sending" formatted="false">Invio icona mancante %d…</string>
+    <string name="maps_destination" formatted="false">DESTINAZIONE DOWNLOAD</string>
+    <string name="maps_internal" formatted="false">Memoria dell\'unità multimediale</string>
+    <string name="maps_internal_sub" formatted="false">Usa la memoria interna del launcher</string>
+    <string name="maps_usb" formatted="false">USB / memoria rimovibile</string>
+    <string name="maps_select" formatted="false">Seleziona</string>
+    <string name="maps_selected" formatted="false">Selezionata</string>
+    <string name="maps_usb_missing" formatted="false">Android non espone alcuna unità rimovibile scrivibile. Collega la chiavetta USB e attendi che venga rilevata.</string>
+    <string name="maps_storage_unavailable" formatted="false">La memoria selezionata non è disponibile. Ricollegala o seleziona un\'altra destinazione. Verrà usato lo sfondo standard.</string>
+    <string name="maps_storage_failed" formatted="false">Impossibile selezionare la memoria. Verifica che sia collegata, scrivibile e che non siano in corso download.</string>
+    <string name="maps_storage_note" formatted="false">Vengono usate solo le mappe nella destinazione selezionata. Cambiarla non sposta né elimina le mappe esistenti. Le mappe usano una cartella dedicata dell\'app senza modificare i video delle telecamere. I download lasciano almeno 512 MiB liberi internamente o 256 MiB sulla memoria rimovibile.</string>
+    <string name="maps_licences" formatted="false">Dati cartografici e licenze</string>
+    <string name="maps_licences_sub" formatted="false">Dati OpenStreetMap, motore MapLibre, caratteri Noto</string>
+    <string name="maps_drive_space" formatted="false">%s liberi su %s</string>
+    <string name="maps_drive_id" formatted="false">ID unità: %s</string>
+    <string name="maps_drive_folder" formatted="false">Cartella mappe: %s</string>
+    <string name="maps_choose_drive" formatted="false">Seleziona l\'unità da usare per le mappe. Puoi scegliere una chiavetta diversa da quella delle telecamere. Sono elencate solo le unità montate ed esposte da Android.</string>
+</resources>

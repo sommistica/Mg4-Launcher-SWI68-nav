@@ -58,15 +58,15 @@ public final class SettingsView extends FrameLayout {
     // 1.0.0 (punto 11): 7 sezioni nello stesso ordine su tutte le versioni - Auto, Home, Barra e pulsanti,
     // Radio e loghi, Aspetto, Avvio e app, Sistema. SEC_DRIVE è stato rinominato SEC_LAUNCH (ora "Avvio e app":
     // il lato guida si è spostato in Auto, i loghi radio si sono spostati qui sotto in SEC_LOGOS).
-    public static final int SEC_CAR = 0, SEC_HOME = 1, SEC_BAR = 2, SEC_LOGOS = 3, SEC_LOOK = 4, SEC_LAUNCH = 5, SEC_SYSTEM = 6;
+    public static final int SEC_CAR = 0, SEC_HOME = 1, SEC_BAR = 2, SEC_LOGOS = 3, SEC_LOOK = 4, SEC_LAUNCH = 5, SEC_SYSTEM = 6, SEC_MAPS = 7;
 
     /** Sezione da mostrare alla prossima apertura (es. Sistema dal popup degli aggiornamenti). */
     public static void openAt(int s) {
         section = s;
     }
-    private static final int[] SEC_ICON = {R.drawable.ic_car, R.drawable.ic_home, R.drawable.ic_buttons, R.drawable.ic_radio, R.drawable.ic_palette, R.drawable.ic_play, R.drawable.ic_gear};
-    private static final int[] SEC_NAME = {R.string.sec_car, R.string.sec_home, R.string.sec_bar, R.string.sec_logos, R.string.sec_look, R.string.sec_launch, R.string.sec_system};
-    private static final int[] SEC_SUB = {R.string.sec_car_sub, R.string.sec_home_sub, R.string.sec_bar_sub, R.string.sec_logos_sub, R.string.sec_look_sub, R.string.sec_launch_sub, R.string.sec_system_sub};
+    private static final int[] SEC_ICON = {R.drawable.ic_car, R.drawable.ic_home, R.drawable.ic_buttons, R.drawable.ic_radio, R.drawable.ic_palette, R.drawable.ic_play, R.drawable.ic_gear, R.drawable.ic_offline_map};
+    private static final int[] SEC_NAME = {R.string.sec_car, R.string.sec_home, R.string.sec_bar, R.string.sec_logos, R.string.sec_look, R.string.sec_launch, R.string.sec_system, R.string.maps_title};
+    private static final int[] SEC_SUB = {R.string.sec_car_sub, R.string.sec_home_sub, R.string.sec_bar_sub, R.string.sec_logos_sub, R.string.sec_look_sub, R.string.sec_launch_sub, R.string.sec_system_sub, R.string.maps_subtitle};
     /** Spazio in alto a sinistra per la spia luci del sistema (come nella home). */
     private static final int SYSTEM_LIGHT_INSET = 64;
     private static final long QUIET_CHECK_MS = 30 * 60_000L;
@@ -94,6 +94,14 @@ public final class SettingsView extends FrameLayout {
     private final FrameLayout footer;
     private final LinearLayout content;
     private boolean diagOpen;
+    private TextView mapStorage;
+    private String shownMapStorages = "";
+    private final java.util.Map<String, TextView> mapDestinations = new java.util.HashMap<>();
+    private final java.util.Map<String, TextView> mapDestinationDetails = new java.util.HashMap<>();
+    private final java.util.Map<String, TextView> mapStates = new java.util.HashMap<>();
+    private final java.util.Map<String, TextView> mapActions = new java.util.HashMap<>();
+    private final java.util.Map<String, TextView> mapDeletes = new java.util.HashMap<>();
+    private final com.mg4.launcher.svc.OfflineMaps.Listener mapListener = this::refreshMaps;
 
     // viste aggiornate di continuo
     private TextView diagText, logUploadSub, logSaveSub, updSub;
@@ -316,6 +324,7 @@ public final class SettingsView extends FrameLayout {
     // =========================================================================================
 
     private void showSection(int s) {
+        mapStates.clear(); mapActions.clear(); mapDeletes.clear(); mapDestinations.clear(); mapDestinationDetails.clear(); mapStorage = null;
         Context c = getContext();
         content.removeAllViews();
         diagText = null;
@@ -356,6 +365,7 @@ public final class SettingsView extends FrameLayout {
             case SEC_LOGOS: buildLogos(c, col); break;
             case SEC_LOOK: buildLook(c, col); break;
             case SEC_LAUNCH: buildLaunch(c, col); break;
+            case SEC_MAPS: buildMaps(c, col); break;
             default: buildSystem(c, col); break;
         }
         refreshTick.run();
@@ -1118,6 +1128,120 @@ public final class SettingsView extends FrameLayout {
         }
     }
 
+    private static String mapSize(long bytes) {
+        return String.format(L.locale(), "%.0f MB", bytes / 1048576.0);
+    }
+
+    private void buildMaps(Context c, LinearLayout col) {
+        com.mg4.launcher.svc.OfflineMaps maps = com.mg4.launcher.svc.OfflineMaps.get(c);
+        maps.refreshStorage();
+        shownMapStorages = mapStorageSignature(maps);
+        LinearLayout options = card(c);
+        options.addView(row(c, L.s(R.string.maps_enable), L.s(R.string.maps_enable_sub),
+                toggle(c, prefs.offlineMaps(), on -> {
+                    prefs.setOfflineMaps(on); host.settingsChanged(false);
+                }), false));
+        options.addView(row(c, L.s(R.string.maps_wifi), L.s(R.string.maps_wifi_sub),
+                toggle(c, prefs.mapWifiOnly(), on -> prefs.setMapWifiOnly(on)), true));
+        col.addView(options, topFull(14));
+        col.addView(Ui.text(c, L.s(R.string.maps_fallback), 17, t.sub, Ui.REGULAR), top(18));
+        col.addView(label(c, L.s(R.string.maps_destination)), top(24));
+        boolean hasUsb = false;
+        for (com.mg4.launcher.svc.OfflineMaps.Storage destination : maps.storages()) {
+            hasUsb |= !destination.internal();
+            TextView choose = button(c, "", v -> {
+                if (!maps.selectStorage(destination.id)) android.widget.Toast.makeText(c,
+                        L.s(R.string.maps_storage_failed), android.widget.Toast.LENGTH_LONG).show();
+                showSection(SEC_MAPS); host.settingsChanged(false);
+            });
+            mapDestinations.put(destination.id, choose);
+            LinearLayout destinationCard = card(c);
+            String title = destination.internal() ? L.s(R.string.maps_internal)
+                    : L.s(R.string.maps_usb) + " · " + destination.name;
+            LinearLayout destinationRow = row(c, title, mapDestinationText(destination), choose, true);
+            mapDestinationDetails.put(destination.id, (TextView) ((ViewGroup) destinationRow.getChildAt(0)).getChildAt(1));
+            destinationCard.addView(destinationRow);
+            col.addView(destinationCard, topFull(12));
+        }
+        col.addView(Ui.text(c, L.s(R.string.maps_choose_drive), 16, t.sub, Ui.REGULAR), top(12));
+        if (!hasUsb) col.addView(Ui.text(c, L.s(R.string.maps_usb_missing), 17, t.sub, Ui.REGULAR), top(12));
+        if (!maps.storageAvailable()) col.addView(Ui.text(c, L.s(R.string.maps_storage_unavailable), 18, t.text, Ui.MEDIUM), top(12));
+        col.addView(Ui.text(c, L.s(R.string.maps_storage_note), 16, t.sub, Ui.REGULAR), top(14));
+        LinearLayout licences = card(c);
+        licences.addView(row(c, L.s(R.string.maps_licences), L.s(R.string.maps_licences_sub),
+                button(c, L.s(R.string.maps_licences), v -> OfflineMapView.showLicences(this, t)), true));
+        col.addView(licences, topFull(14));
+        col.addView(label(c, L.s(R.string.maps_regions)), top(24));
+        col.addView(Ui.text(c, L.s(R.string.maps_source), 16, t.sub, Ui.REGULAR), top(10));
+        for (com.mg4.launcher.svc.OfflineMaps.Region region : maps.regions()) {
+            LinearLayout actions = Ui.row(c);
+            TextView get = button(c, "", v -> {
+                if (maps.active(region) && maps.busy()) maps.pause();
+                else maps.download(region, prefs.mapWifiOnly());
+                refreshMaps();
+            });
+            TextView del = button(c, L.s(R.string.maps_delete), v -> Confirm.show(this, t,
+                    region.name, L.s(R.string.maps_delete_confirm), L.s(R.string.btn_cancel),
+                    L.s(R.string.maps_delete), () -> { maps.delete(region); refreshMaps(); }));
+            actions.addView(get, Ui.margins(Ui.lp(-2, tp(60)), 0, 0, dp(12), 0));
+            actions.addView(del, Ui.lp(-2, tp(60)));
+            LinearLayout item = row(c, region.name, " ", actions, true);
+            mapStates.put(region.id, (TextView) ((ViewGroup) item.getChildAt(0)).getChildAt(1));
+            mapActions.put(region.id, get); mapDeletes.put(region.id, del);
+            LinearLayout box = card(c); box.addView(item); col.addView(box, topFull(12));
+        }
+        mapStorage = Ui.text(c, "", 17, t.sub, Ui.REGULAR);
+        col.addView(mapStorage, top(22)); refreshMaps();
+    }
+
+    private String mapDestinationText(com.mg4.launcher.svc.OfflineMaps.Storage destination) {
+        String space = L.f(R.string.maps_drive_space, mapSize(destination.freeBytes()), mapSize(destination.totalBytes()));
+        String identity = destination.internal() ? "" : L.f(R.string.maps_drive_id, destination.volumeId()) + " · ";
+        return identity + space + "\n" + L.f(R.string.maps_drive_folder, destination.directory.getAbsolutePath());
+    }
+
+    private String mapStorageSignature(com.mg4.launcher.svc.OfflineMaps maps) {
+        String value = maps.storageId() + ":" + maps.storageAvailable();
+        for (com.mg4.launcher.svc.OfflineMaps.Storage destination : maps.storages()) value += ";" + destination.id + ":" + destination.name;
+        return value;
+    }
+
+    private void refreshMaps() {
+        if (mapStorage == null) return;
+        com.mg4.launcher.svc.OfflineMaps maps = com.mg4.launcher.svc.OfflineMaps.get(getContext());
+        maps.refreshStorage();
+        if (!shownMapStorages.equals(mapStorageSignature(maps))) { showSection(SEC_MAPS); return; }
+        for (com.mg4.launcher.svc.OfflineMaps.Storage destination : maps.storages()) {
+            TextView detail = mapDestinationDetails.get(destination.id);
+            if (detail != null) detail.setText(mapDestinationText(destination));
+        }
+        for (java.util.Map.Entry<String, TextView> entry : mapDestinations.entrySet()) {
+            boolean selected = entry.getKey().equals(maps.storageId());
+            entry.getValue().setText(L.s(selected ? R.string.maps_selected : R.string.maps_select));
+            entry.getValue().setEnabled(!selected && !maps.busy());
+            entry.getValue().setAlpha(entry.getValue().isEnabled() ? 1f : 0.4f);
+        }
+        for (com.mg4.launcher.svc.OfflineMaps.Region r : maps.regions()) {
+            TextView status = mapStates.get(r.id), action = mapActions.get(r.id), del = mapDeletes.get(r.id);
+            if (status == null) continue;
+            int state = maps.state(r);
+            String text = maps.installed(r) ? L.s(R.string.maps_installed) : L.s(R.string.maps_not_installed);
+            if (state == 1) text = L.f(R.string.maps_progress, mapSize(maps.downloaded(r)), mapSize(r.bytes));
+            if (state == 2) text = L.s(R.string.maps_verifying);
+            if (state == 3) text = L.s(R.string.maps_paused);
+            if (state == 4) text = L.s(R.string.maps_failed);
+            status.setText(text + " · " + mapSize(r.bytes) + " · " + r.version);
+            action.setText(L.s(state == 1 || state == 2 ? R.string.maps_pause
+                    : maps.current(r) ? R.string.maps_installed : maps.installed(r) ? R.string.maps_update
+                    : maps.downloaded(r) > 0 ? R.string.maps_resume : R.string.maps_download));
+            action.setEnabled(maps.storageAvailable() && ((!maps.busy() && !maps.current(r)) || (maps.active(r) && maps.busy())));
+            action.setAlpha(action.isEnabled() ? 1f : 0.4f);
+            del.setVisibility(maps.installed(r) || maps.downloaded(r) > 0 ? VISIBLE : GONE);
+            del.setEnabled(!maps.busy()); del.setAlpha(del.isEnabled() ? 1f : 0.4f);
+        }
+        mapStorage.setText(L.f(R.string.maps_storage, mapSize(maps.used()), mapSize(maps.available())));
+    }
+
     private void buildSystem(Context c, LinearLayout col) {
         Updater up = host.updater();
         col.addView(label(c, L.s(R.string.set_updates)));
@@ -1471,7 +1595,8 @@ public final class SettingsView extends FrameLayout {
         @Override
         public void run() {
             main.removeCallbacks(this);
-            if (diagText == null && logUploadSub == null) return;
+            if (diagText == null && logUploadSub == null && mapStorage == null) return;
+            if (mapStorage != null) refreshMaps();
             if (diagText != null) {
                 String d = Diag.dump();
                 diagText.setText(d.isEmpty() ? L.s(R.string.diag_waiting) : d);
@@ -1488,6 +1613,8 @@ public final class SettingsView extends FrameLayout {
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         refreshTick.run();
+        com.mg4.launcher.svc.OfflineMaps.get(getContext()).addListener(mapListener);
+        refreshMaps();
         com.mg4.launcher.svc.LogoPacks.get(getContext()).addListener(logoListener);
     }
 
@@ -1496,6 +1623,7 @@ public final class SettingsView extends FrameLayout {
         super.onDetachedFromWindow();
         main.removeCallbacks(refreshTick);
         host.updater().setListener(null);
+        com.mg4.launcher.svc.OfflineMaps.get(getContext()).removeListener(mapListener);
         com.mg4.launcher.svc.LogoPacks.get(getContext()).removeListener(logoListener);
     }
 }

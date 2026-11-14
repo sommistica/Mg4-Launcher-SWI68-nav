@@ -93,6 +93,13 @@ public final class LogUploader {
         if (bg != null) return;
         thread.start();
         bg = new Handler(thread.getLooper());
+        bg.post(() -> {
+            if (!sp.getBoolean("log_location_privacy_v2", false)) {
+                File[] legacy = queueDir().listFiles();
+                if (legacy != null) for (File f : legacy) f.delete();
+                sp.edit().putBoolean("log_location_privacy_v2", true).commit();
+            }
+        });
         if (!configured()) {
             status = "non configurato";
             Diag.put("log.invio", "non configurato in questa versione");
@@ -115,7 +122,7 @@ public final class LogUploader {
     public interface ReportListener { void complete(String message); }
 
     /** Freeze maneuver fields at the tap, independently of subsequent navigation updates. */
-    public static void reportMissingIcon(int code, int meters, String text, String road,
+    public static void reportMissingIcon(int code, int meters, String text,
                                          ReportListener listener) {
         LogUploader u = instance;
         if (u == null || u.bg == null || !configured()) {
@@ -123,10 +130,7 @@ public final class LogUploader {
             return;
         }
         final Date captured = new Date();
-        final String report = "===== MISSING NAVIGATION ICON =====\n"
-                + "Captured: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z", Locale.ROOT).format(captured)
-                + "\nSource: MG\nIcon code: " + code + "\nDistance meters: " + meters
-                + "\nNavigation text: " + text + "\nRoad: " + road + "\n\n";
+        final String report = ManeuverReport.body(code, meters, text);
         u.bg.post(() -> {
             String message;
             try {
@@ -135,7 +139,7 @@ public final class LogUploader {
                 String time = new SimpleDateFormat("HH-mm-ss-SSS", Locale.ROOT).format(captured);
                 String path = FOLDER + "/" + u.installId() + "/" + day + "/missing-icon-" + time
                         + "-" + UUID.randomUUID().toString().substring(0, 8) + ".txt";
-                byte[] bytes = (report + Diag.buildLog(u.ctx)).getBytes("UTF-8");
+                byte[] bytes = report.getBytes("UTF-8");
                 if (bytes.length > MAX_BYTES) bytes = Arrays.copyOf(bytes, MAX_BYTES);
                 // Persist the exact captured report before attempting network I/O.
                 if (!u.enqueue(path, bytes)) throw new Exception("Could not save report locally");
@@ -252,6 +256,11 @@ public final class LogUploader {
         for (File f : files) {
             try {
                 byte[] data = readAll(new FileInputStream(f));
+                if (f.getName().contains("missing-icon-")
+                        && !new String(data, "UTF-8").matches("(?s)===== MISSING NAVIGATION ICON =====\\nIcon code: -?[0-9]+\\nInstruction type: [a-z_]+\\nDistance meters: -?[0-9]+\\n")) {
+                    f.delete(); // Drop legacy reports that included road names / diagnostic dumps.
+                    continue;
+                }
                 put(f.getName().replace('~', '/'), data);
                 //noinspection ResultOfMethodCallIgnored
                 f.delete();

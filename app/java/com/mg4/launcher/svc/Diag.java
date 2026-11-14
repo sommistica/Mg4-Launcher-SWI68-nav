@@ -228,6 +228,7 @@ public final class Diag {
 
     /** Testo completo del log: versione, valori attuali, eventi recenti, logcat del launcher (stesso formato della SWI69). */
     public static String buildLog(Context c) {
+        MapResourceDiagnostics.sample(c);
         StringBuilder sb = new StringBuilder();
         String version = "?";
         try {

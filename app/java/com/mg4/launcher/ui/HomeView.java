@@ -23,7 +23,6 @@ import java.util.Locale;
 
 /** Home in stile Tesla (MG4, SWI68): auto + energia a sinistra, pannello Mappa/Media/CarPlay a destra, barra in basso. */
 public final class HomeView extends LinearLayout {
-    private static final boolean NAV_DEBUG_ENABLED = true;
 
     /** Azioni che la home chiede all'activity. */
     public interface Host {
@@ -75,6 +74,7 @@ public final class HomeView extends LinearLayout {
 
     // pannello destro
     private FrameLayout right;
+    private OfflineMapView offlineMap;
     private View mapPanel, mediaPanel, phonePanel;
     private TextView tabMap, tabMedia, tabPhone;
     /**
@@ -100,7 +100,7 @@ public final class HomeView extends LinearLayout {
     // mappa
     private LinearLayout navIdle, navCard, navEta;
     private TextView navCardTitle, navCardSub, navEtaArrive, navEtaMin, navEtaKm;
-    private TextView navDebug;
+
     private ImageView navManeuverIcon;
     private TextView navRoad, missingIconButton, missingIconStatus;
     private boolean missingIconSending;
@@ -230,7 +230,12 @@ public final class HomeView extends LinearLayout {
         return rhd;
     }
 
+    public void setMapForeground(boolean foreground) {
+        if (offlineMap != null) offlineMap.setForeground(foreground);
+    }
+
     public void refreshNav() {
+        if (offlineMap != null) offlineMap.refresh();
         buildNavWith(getContext(), navWithPhone);
     }
 
@@ -795,9 +800,8 @@ public final class HomeView extends LinearLayout {
 
     private View buildMapPanel(Context c) {
         FrameLayout f = new FrameLayout(c);
-        Bars.MapDecor decor = new Bars.MapDecor(c);
-        decor.setColors(t.map, t.road, t.roadMinor);
-        f.addView(decor, new FrameLayout.LayoutParams(-1, -1));
+        offlineMap = new OfflineMapView(c, t, prefs);
+        f.addView(offlineMap, new FrameLayout.LayoutParams(-1, -1));
 
         // velo sfumato da sinistra: il testo resta leggibile sopra la mappa decorativa
         View veil = new View(c);
@@ -873,7 +877,7 @@ public final class HomeView extends LinearLayout {
         txt.addView(navRoad, Ui.margins(new LayoutParams(-1, -2), 0, dp(8), 0, 0));
         maneuverRow.addView(txt, Ui.margins(new LayoutParams(0, -2, 1), dp(22), 0, 0, 0));
         navCard.addView(maneuverRow, new LayoutParams(-1, -2));
-        missingIconButton = Ui.text(c, "Send missing icon log to developer", 17, t.onAccent, Ui.MEDIUM);
+        missingIconButton = Ui.text(c, L.s(R.string.missing_icon_send), 17, t.onAccent, Ui.MEDIUM);
         missingIconButton.setBackground(Ui.round(t.accent, dp(10)));
         missingIconButton.setPadding(dp(16), dp(12), dp(16), dp(12));
         missingIconButton.setMinHeight(tp(48));
@@ -883,27 +887,14 @@ public final class HomeView extends LinearLayout {
         navCard.setClickable(true);
         navCard.setOnClickListener(v -> openNavigation());
         FrameLayout.LayoutParams cl = new FrameLayout.LayoutParams(dp(500), -2, Gravity.CENTER_VERTICAL | Gravity.START);
-        cl.setMargins(dp(240), 0, dp(20), 0);
+        cl.setMargins(dp(20), 0, dp(20), 0);
         f.addView(navCard, cl);
 
-        // Temporary readout for photographing MG maneuver codes alongside their text.
-        navDebug = Ui.text(c, "", 13, t.sub, Ui.REGULAR);
-        navDebug.setBackground(Ui.round(t.overlay, dp(18)));
-        navDebug.setPadding(dp(12), dp(12), dp(12), dp(12));
-        FrameLayout.LayoutParams debugLp = new FrameLayout.LayoutParams(dp(190), -2, Gravity.CENTER_VERTICAL | Gravity.START);
-        debugLp.setMargins(dp(20), 0, 0, 0);
-        f.addView(navDebug, debugLp);
-        navDebug.setVisibility(GONE);
-        f.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
-            int width = right - left;
-            if (width <= 0 || width == oldRight - oldLeft) return;
-            int debugWidth = Math.min(dp(190), width / 4);
-            FrameLayout.LayoutParams debugParams = (FrameLayout.LayoutParams) navDebug.getLayoutParams();
-            debugParams.width = debugWidth;
-            navDebug.setLayoutParams(debugParams);
+        f.addOnLayoutChangeListener((v, left, top, rightEdge, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (rightEdge - left <= 0 || rightEdge - left == oldRight - oldLeft) return;
             FrameLayout.LayoutParams cardParams = (FrameLayout.LayoutParams) navCard.getLayoutParams();
-            cardParams.leftMargin = debugWidth + dp(50);
-            cardParams.width = Math.min(dp(500), Math.max(dp(180), width - cardParams.leftMargin - dp(20)));
+            cardParams.leftMargin = dp(20);
+            cardParams.width = Math.min(dp(500), Math.max(1, rightEdge - left - dp(40)));
             navCard.setLayoutParams(cardParams);
         });
 
@@ -923,7 +914,13 @@ public final class HomeView extends LinearLayout {
         navEta.setVisibility(GONE);
 
         // non è una mappa in miniatura ma una scorciatoia: lo dice un'etichetta in basso a destra
-        f.addView(shortcutHint(c, L.s(R.string.map_shortcut_hint)), hintLp());
+        View hint = shortcutHint(c, L.s(R.string.map_shortcut_hint));
+        f.addView(hint, hintLp());
+        offlineMap.setDisplayListener(() -> {
+            boolean showing = offlineMap.showingMap();
+            veil.setVisibility(showing ? GONE : VISIBLE);
+            hint.setVisibility(showing ? GONE : VISIBLE);
+        });
         return f;
     }
 
@@ -1028,7 +1025,7 @@ public final class HomeView extends LinearLayout {
         boolean missing = n.navigating && !remote && icon == R.drawable.ic_maneuver_unknown;
         if (!missingIconSending && displayedMissingIcon != n.turnIcon) {
             displayedMissingIcon = n.turnIcon;
-            missingIconStatus.setText("Missing icon: code " + n.turnIcon);
+            missingIconStatus.setText(L.f(R.string.missing_icon_code, n.turnIcon));
         }
         missingIconButton.setVisibility(missing ? VISIBLE : GONE);
         missingIconStatus.setVisibility(missing ? VISIBLE : GONE);
@@ -1037,8 +1034,8 @@ public final class HomeView extends LinearLayout {
             if (missingIconSending) return;
             missingIconSending = true;
             missingIconButton.setEnabled(false);
-            missingIconStatus.setText("Sending missing icon " + n.turnIcon + "...");
-            com.mg4.launcher.svc.LogUploader.reportMissingIcon(n.turnIcon, n.turnMeters, n.turnText, n.road, message -> {
+            missingIconStatus.setText(L.f(R.string.missing_icon_sending, n.turnIcon));
+            com.mg4.launcher.svc.LogUploader.reportMissingIcon(n.turnIcon, n.turnMeters, n.turnText, message -> {
                 missingIconSending = false;
                 missingIconButton.setEnabled(true);
                 missingIconStatus.setText(message);
@@ -1046,19 +1043,6 @@ public final class HomeView extends LinearLayout {
         });
         navRoad.setText(remote ? "" : n.road);
         navRoad.setVisibility(!remote && !n.road.isEmpty() ? VISIBLE : GONE);
-        navDebug.setVisibility(NAV_DEBUG_ENABLED && guiding ? VISIBLE : GONE);
-        if (NAV_DEBUG_ENABLED && remote) {
-            navDebug.setText("NAV DEBUG - " + (m.deviceType == MediaClient.DEV_AAUTO ? "Android Auto" : "CarPlay")
-                    + "\nIcon code: unavailable (not read from phone metadata)"
-                    + "\nDistance: " + (m.tbtDistance.isEmpty() ? "(empty)" : m.tbtDistance)
-                    + "\nText: " + (m.tbtRoad.isEmpty() ? "(empty)" : m.tbtRoad));
-        } else if (NAV_DEBUG_ENABLED && n.navigating) {
-            navDebug.setText("NAV DEBUG - MG"
-                    + "\nIcon code: " + n.turnIcon + (n.turnIcon < 0 ? " (unknown)" : "")
-                    + "\nDistance: " + n.turnMeters + " m"
-                    + "\nText: " + (n.turnText.isEmpty() ? "(empty)" : n.turnText)
-                    + "\nRoad: " + (n.road.isEmpty() ? "(empty)" : n.road));
-        }
         navHomeBtn.setVisibility(n.connected && n.hasHome ? VISIBLE : GONE);
         navOfficeBtn.setVisibility(n.connected && n.hasOffice ? VISIBLE : GONE);
         navPlaces.setVisibility(n.connected && (n.hasHome || n.hasOffice) ? VISIBLE : GONE);

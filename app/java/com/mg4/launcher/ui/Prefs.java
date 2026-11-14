@@ -54,6 +54,11 @@ public final class Prefs {
         sp.edit().putBoolean("blackRoof", b).apply();
     }
 
+    public boolean offlineMaps() { return sp.getBoolean("offline_maps", false); }
+    public void setOfflineMaps(boolean on) { sp.edit().putBoolean("offline_maps", on).apply(); }
+    public boolean mapWifiOnly() { return sp.getBoolean("map_wifi_only", true); }
+    public void setMapWifiOnly(boolean on) { sp.edit().putBoolean("map_wifi_only", on).apply(); }
+
     public String themeMode() {
         return sp.getString("theme", THEME_AUTO);
     }

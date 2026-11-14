@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Separate from generated strings.xml; English fallback for other locales. -->
+<resources>
+    <string name="maps_title" formatted="false">Maps</string>
+    <string name="maps_subtitle" formatted="false">Offline maps and downloads</string>
+    <string name="maps_enable" formatted="false">Offline maps</string>
+    <string name="maps_enable_sub" formatted="false">Follow your position using downloaded regions</string>
+    <string name="maps_wifi" formatted="false">Download over Wi-Fi only</string>
+    <string name="maps_wifi_sub" formatted="false">Downloads pause if Wi-Fi is disconnected</string>
+    <string name="maps_fallback" formatted="false">Without a recent GPS fix or local map coverage, the standard background is shown. Navigation instructions still work.</string>
+    <string name="maps_regions" formatted="false">REGIONS</string>
+    <string name="maps_source" formatted="false">OpenStreetMap data from Librescoot. Full source packages; simplified display without buildings. No route line or live traffic.</string>
+    <string name="maps_download" formatted="false">Download</string>
+    <string name="maps_resume" formatted="false">Resume</string>
+    <string name="maps_pause" formatted="false">Pause</string>
+    <string name="maps_update" formatted="false">Update</string>
+    <string name="maps_delete" formatted="false">Delete</string>
+    <string name="maps_delete_confirm" formatted="false">Delete this downloaded map and any partial download?</string>
+    <string name="maps_installed" formatted="false">Installed</string>
+    <string name="maps_not_installed" formatted="false">Not downloaded</string>
+    <string name="maps_progress" formatted="false">Downloading %s / %s</string>
+    <string name="maps_verifying" formatted="false">Verifying download…</string>
+    <string name="maps_paused" formatted="false">Paused; resume when Wi-Fi is available</string>
+    <string name="maps_failed" formatted="false">Download failed; check connection and free storage, then retry</string>
+    <string name="maps_storage" formatted="false">Maps and partial downloads: %s · Free: %s</string>
+    <string name="maps_recenter" formatted="false">Recenter map</string>
+    <string name="maps_offline_badge" formatted="false">Offline</string>
+    <string name="missing_icon_send" formatted="false">Send missing icon log to developer</string>
+    <string name="missing_icon_code" formatted="false">Missing icon: code %d</string>
+    <string name="missing_icon_sending" formatted="false">Sending missing icon %d…</string>
+    <string name="maps_destination" formatted="false">DOWNLOAD LOCATION</string>
+    <string name="maps_internal" formatted="false">Head unit storage</string>
+    <string name="maps_internal_sub" formatted="false">Use the launcher\'s internal storage</string>
+    <string name="maps_usb" formatted="false">USB / removable storage</string>
+    <string name="maps_select" formatted="false">Select</string>
+    <string name="maps_selected" formatted="false">Selected</string>
+    <string name="maps_usb_missing" formatted="false">No writable removable drive is exposed by Android. Connect your USB stick and wait for it to appear.</string>
+    <string name="maps_storage_unavailable" formatted="false">The selected storage is unavailable. Reconnect it or select another location. The standard background will be used.</string>
+    <string name="maps_storage_failed" formatted="false">Cannot select this storage. Check that it is connected, writable, and no download is running.</string>
+    <string name="maps_storage_note" formatted="false">Only maps in the selected location are used. Switching does not move or delete existing maps. Maps use a dedicated app folder and do not modify camera videos. Downloads keep at least 512 MiB free internally or 256 MiB on removable storage.</string>
+    <string name="maps_licences" formatted="false">Map data and licences</string>
+    <string name="maps_licences_sub" formatted="false">OpenStreetMap data, MapLibre renderer, Noto fonts</string>
+    <string name="maps_drive_space" formatted="false">%s free of %s</string>
+    <string name="maps_drive_id" formatted="false">Drive ID: %s</string>
+    <string name="maps_drive_folder" formatted="false">Map folder: %s</string>
+    <string name="maps_choose_drive" formatted="false">Select the exact drive to use for maps. You can choose a different stick from the camera drive. Only drives mounted and exposed by Android are listed.</string>
+</resources>

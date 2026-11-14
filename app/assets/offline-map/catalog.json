@@ -1,0 +1,37 @@
+{
+  "source": "Librescoot / OpenStreetMap",
+  "regions": [
+    {
+      "id": "netherlands",
+      "name": "Netherlands",
+      "version": "tiles-20261108T194315Z",
+      "url": "https://github.com/librescoot/osm-tiles/releases/download/tiles-20261108T194315Z/tiles_netherlands.mbtiles",
+      "bytes": 885522432,
+      "sha256": "823c6bc60333cf80e8e8c4272ff153c84b065de56b47fe869783113de9fcd29f"
+    },
+    {
+      "id": "belgium",
+      "name": "Belgium",
+      "version": "tiles-20261108T194315Z",
+      "url": "https://github.com/librescoot/osm-tiles/releases/download/tiles-20261108T194315Z/tiles_belgium.mbtiles",
+      "bytes": 584253440,
+      "sha256": "d039d9779319fdde9300e58c89d1773b358754b40605edf9b816ac843b4598fc"
+    },
+    {
+      "id": "luxembourg",
+      "name": "Luxembourg",
+      "version": "tiles-20261108T194315Z",
+      "url": "https://github.com/librescoot/osm-tiles/releases/download/tiles-20261108T194315Z/tiles_luxembourg.mbtiles",
+      "bytes": 38928384,
+      "sha256": "76b7b1c33d4e0248ddc0ad4cc7dca3980767322c206636068c52c600fedf50d4"
+    },
+    {
+      "id": "hamburg",
+      "name": "Hamburg",
+      "version": "tiles-20261108T194315Z",
+      "url": "https://github.com/librescoot/osm-tiles/releases/download/tiles-20261108T194315Z/tiles_hamburg.mbtiles",
+      "bytes": 29949952,
+      "sha256": "68647727507cc354806ec3dd4d38672a7edcb276f33b779604964f79a295c224"
+    }
+  ]
+}
