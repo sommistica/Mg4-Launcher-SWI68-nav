@@ -238,3 +238,25 @@ is ready, it is fully opaque, and the static decoration, gradient veil, shortcut
 hint and fallback status are hidden. Navigation instructions and missing-icon
 reporting remain visible independently of either background. If fallback is
 needed again, the static decoration and current reason are restored.
+
+## GPS continuity / version 1.0.4.5-debug
+
+Position requests retain a one-second minimum interval but use zero minimum
+movement, so a stationary car can receive fresh fixes. A live marker still
+requires an accurate fix no older than 30 seconds. An already rendered map can
+remain visible for up to two minutes after the last usable fix, with a dimmed
+marker and a themed `Last known position · GPS unavailable` badge. The frozen
+marker is not extrapolated or reported as live. With no prior rendered map, the
+normal GPS fallback is used immediately; after two minutes it is also used for
+the retained map. Denied location permission does not retain the map preview.
+
+Brief foreground/tab interruptions stop GPS requests but preserve the in-memory
+fix, source and renderer for up to 30 seconds. Resuming within that window reuses
+the loaded map. The explicit disabled toggle still hides the map immediately and
+releases its renderer after ten seconds. Storage loss, changed coverage and
+renderer failures retain their existing fallback/error handling. No position is
+persisted to disk or added to logs; `maps.positionState` reports only `live`,
+`last_known` or `none`.
+
+Regression test: compile/run `tests/MapLocationPolicyTest.java` alongside
+`app/java/com/mg4/launcher/svc/MapLocationPolicy.java` using the build-container JDK.

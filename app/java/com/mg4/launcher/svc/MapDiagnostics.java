@@ -6,6 +6,8 @@ import java.util.Locale;
 public final class MapDiagnostics {
     public enum Renderer { NOT_CREATED, LOADING, READY, DISPLAYING, HIDDEN, RELEASED, FAILED }
     public enum Failure { CREATE, MAIN_DOCUMENT, PROCESS_EXIT, WEBGL, TILE_SOURCE, SCRIPT, TIMEOUT, RESOURCE, LIBRARY, WORKER, GLYPHS, REFERENCE, TYPE, DOWNLOAD, CHECKSUM, PACKAGE, STORAGE_SPACE, STORAGE_ACCESS }
+    public enum Position { NONE, LIVE, LAST_KNOWN }
+    public static void position(Position state) { Diag.put("maps.positionState", state.name().toLowerCase(Locale.ROOT)); }
     public enum Download { IDLE, DOWNLOADING, VERIFYING, PAUSED, FAILED, INSTALLED }
     private MapDiagnostics() {}
 

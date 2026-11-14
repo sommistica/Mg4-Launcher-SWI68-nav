@@ -28,6 +28,9 @@
         marker.setLngLat([position.lon,position.lat]).setRotation(position.bearing);
         if (following) map.jumpTo({center:[position.lon,position.lat]});
     }
+    window.setPositionFresh = function (fresh) {
+        if (marker) marker.getElement().style.opacity = fresh ? '1' : '0.4';
+    };
     window.recenterMap = function () { following = true; move(); };
     window.updatePosition = function (p) {
         position = p;

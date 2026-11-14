@@ -57,4 +57,5 @@
     <string name="maps_reason_coverage" formatted="false">Nessun dato cartografico per questa zona</string>
     <string name="maps_reason_loading" formatted="false">Preparazione della mappa offline…</string>
     <string name="maps_reason_renderer" formatted="false">Errore di visualizzazione · nuovo tentativo automatico</string>
+    <string name="maps_position_last_known" formatted="false">Ultima posizione nota · GPS non disponibile</string>
 </resources>

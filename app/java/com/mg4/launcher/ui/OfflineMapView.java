@@ -16,6 +16,7 @@ import com.mg4.launcher.L;
 import com.mg4.launcher.R;
 import com.mg4.launcher.svc.OfflineMaps;
 import com.mg4.launcher.svc.MapDiagnostics;
+import com.mg4.launcher.svc.MapLocationPolicy;
 import org.json.JSONObject;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
@@ -37,10 +38,10 @@ public final class OfflineMapView extends FrameLayout {
     private final TextView badge, attribution, recenter;
     private WebView web;
     private Location fix;
-    private boolean foreground = true, tracking, loaded, shown, failed, detached, releaseScheduled;
+    private boolean foreground = true, tracking, loaded, shown, failed, detached, releaseScheduled, mapReady;
     private int request, rendererId, failureCount;
     private long lastRevision = -1, nextMemorySample, retryAt;
-    private String source = "";
+    private String source = "", mapName = "";
     private Runnable displayChanged;
     private final OfflineMaps.Listener mapListener = this::refresh;
 
@@ -142,7 +143,7 @@ public final class OfflineMapView extends FrameLayout {
             s.setSaveFormData(false); s.setMediaPlaybackRequiresUserGesture(true);
             web.addJavascriptInterface(new Object() {
                 @JavascriptInterface public void ready() { main.post(() -> { if (renderer != rendererId) return; loaded = true; MapDiagnostics.renderer(MapDiagnostics.Renderer.READY); update(); }); }
-                @JavascriptInterface public void visible(String key) { main.post(() -> { if (renderer == rendererId && !failed && eligible() && fresh(fix) && !source.isEmpty() && source.equals(key)) show(true); }); }
+                @JavascriptInterface public void visible(String key) { main.post(() -> { if (renderer == rendererId && !failed && eligible() && fresh(fix) && !source.isEmpty() && source.equals(key)) showPosition(true); }); }
                 @JavascriptInterface public void unavailable(int reason) { main.post(() -> { if (renderer != rendererId) return;
                     MapDiagnostics.scriptFailure(reason); rendererFailed(); }); }
             }, "OfflineMap");
@@ -195,6 +196,8 @@ public final class OfflineMapView extends FrameLayout {
     }
     private void show(boolean value) {
         boolean changed = shown != value; shown = value;
+        if (value) mapReady = true;
+        else MapDiagnostics.position(MapDiagnostics.Position.NONE);
         decor.setVisibility(value ? GONE : VISIBLE);
         if (value) { failureCount = 0; retryAt = 0; MapDiagnostics.retry(0); MapDiagnostics.renderer(MapDiagnostics.Renderer.DISPLAYING); }
         else if (changed && !failed) MapDiagnostics.renderer(MapDiagnostics.Renderer.HIDDEN);
@@ -207,19 +210,29 @@ public final class OfflineMapView extends FrameLayout {
         if (changed && displayChanged != null) displayChanged.run();
     }
     private boolean eligible() { return !detached && isAttachedToWindow() && getWindowVisibility() == VISIBLE && foreground && isShown() && prefs.offlineMaps(); }
+    private long fixAgeMs(Location location) {
+        if (location == null) return -1;
+        long delta = SystemClock.elapsedRealtimeNanos() - location.getElapsedRealtimeNanos();
+        return delta < 0 ? -1 : delta / 1_000_000L;
+    }
     private boolean fresh(Location l) {
         return l != null && Double.isFinite(l.getLatitude()) && Double.isFinite(l.getLongitude())
                 && Math.abs(l.getLatitude()) <= 85.051129 && Math.abs(l.getLongitude()) <= 180
-                && l.hasAccuracy() && l.getAccuracy() <= 200
-                && SystemClock.elapsedRealtimeNanos() - l.getElapsedRealtimeNanos() >= 0
-                && SystemClock.elapsedRealtimeNanos() - l.getElapsedRealtimeNanos() <= 30_000_000_000L;
+                && MapLocationPolicy.fresh(fixAgeMs(l), l.hasAccuracy(), l.getAccuracy());
     }
+    private void positionState(boolean live) {
+        badge.setText(L.s(R.string.maps_offline_badge) + " · " + mapName
+                + (live ? "" : " · " + L.s(R.string.maps_position_last_known)));
+        MapDiagnostics.position(live ? MapDiagnostics.Position.LIVE : MapDiagnostics.Position.LAST_KNOWN);
+        if (web != null && loaded) web.evaluateJavascript("window.setPositionFresh(" + live + ")", null);
+    }
+    private void showPosition(boolean live) { positionState(live); show(true); }
     public void refresh() {
         if (maps == null) return; // parent can dispatch visibility during construction
         maps.refreshStorage();
         long revision = maps.revision();
         if (revision != lastRevision) {
-            lastRevision = revision; failed = false; failureCount = 0; retryAt = 0; loaded = false; source = "";
+            lastRevision = revision; failed = false; failureCount = 0; retryAt = 0; loaded = false; source = ""; mapReady = false; mapName = "";
             if (web != null) { rendererId++; WebView old = web; web = null; removeView(old); old.destroy(); }
             show(false);
         }
@@ -234,21 +247,21 @@ public final class OfflineMapView extends FrameLayout {
             try {
                 for (String provider : locations.getProviders(true)) {
                     if (LocationManager.GPS_PROVIDER.equals(provider) || LocationManager.NETWORK_PROVIDER.equals(provider)) {
-                        locations.requestLocationUpdates(provider, 1000, 2, locationListener, Looper.getMainLooper());
+                        locations.requestLocationUpdates(provider, 1000, 0, locationListener, Looper.getMainLooper());
                         Location last = locations.getLastKnownLocation(provider);
                         if (fresh(last) && (fix == null || last.getElapsedRealtimeNanos() > fix.getElapsedRealtimeNanos())) fix = last;
                     }
                 }
                 tracking = true;
             } catch (SecurityException e) { if (locations != null) locations.removeUpdates(locationListener); tracking = false; }
-        } else if (!run && tracking) { locations.removeUpdates(locationListener); tracking = false; fix = null; }
+        } else if (!run && tracking) { locations.removeUpdates(locationListener); tracking = false; }
         main.removeCallbacks(watchdog);
         if (run) {
             main.removeCallbacks(releaseRenderer); releaseScheduled = false;
             main.postDelayed(watchdog, 5000); if (web != null) web.onResume();
         } else {
-            request++; source = ""; show(false); if (web != null) web.onPause();
-            if (web != null && !releaseScheduled) { releaseScheduled = true; main.postDelayed(releaseRenderer, 10_000); }
+            request++; show(false); if (web != null) web.onPause();
+            if (web != null && !releaseScheduled) { releaseScheduled = true; main.postDelayed(releaseRenderer, prefs.offlineMaps() ? MapLocationPolicy.INACTIVE_RENDERER_MS : 10_000); }
         }
         if (!run && eligible() && !"internal".equals(maps.storageId())) main.postDelayed(watchdog, 5000);
         publishDiagnostics();
@@ -285,7 +298,7 @@ public final class OfflineMapView extends FrameLayout {
     }
     private final Runnable releaseRenderer = this::releaseRenderer;
     private void releaseRenderer() {
-        releaseScheduled = false; rendererId++; loaded = false; source = ""; show(false);
+        releaseScheduled = false; rendererId++; loaded = false; source = ""; mapName = ""; mapReady = false; show(false);
         if (web != null) { WebView old = web; web = null; removeView(old); old.destroy(); }
         maps.releaseDatabases();
         MapDiagnostics.renderer(MapDiagnostics.Renderer.RELEASED);
@@ -294,16 +307,25 @@ public final class OfflineMapView extends FrameLayout {
     private final LocationListener locationListener = new LocationListener() {
         @Override public void onLocationChanged(Location l) { MapDiagnostics.fix(l != null, fresh(l)); if (fresh(l)) fix = new Location(l); update(); }
         @Override public void onProviderEnabled(String p) { refresh(); }
-        @Override public void onProviderDisabled(String p) { fix = null; update(); }
+        @Override public void onProviderDisabled(String p) { refresh(); }
         @Override public void onStatusChanged(String p, int s, Bundle b) {}
     };
     private void update() {
         final int token = ++request;
-        if (!eligible()) { MapDiagnostics.coverage(false); show(false); if (web != null) releaseRenderer.run(); return; }
+        if (!eligible()) { show(false); return; }
         Fallback locationReason = locationFallback();
         if (locationReason != null) {
-            fallback(locationReason); MapDiagnostics.coverage(false); show(false);
-            if (web != null) releaseRenderer.run(); return;
+            fallback(locationReason);
+            if (locationReason != Fallback.PERMISSION && !failed && web != null
+                    && MapLocationPolicy.retainRenderedMap(mapReady, fixAgeMs(fix))) {
+                // Retain the already covered area without presenting a stale marker as live.
+                MapDiagnostics.coverage(true); showPosition(false);
+            } else {
+                MapDiagnostics.coverage(false); show(false);
+                // A brief loss of position must not destroy a warm renderer.
+                if (web != null && fixAgeMs(fix) > MapLocationPolicy.LAST_KNOWN_MAP_MS) releaseRenderer();
+            }
+            return;
         }
         if (failed) {
             if (SystemClock.elapsedRealtime() < retryAt) { fallback(Fallback.RENDERER); show(false); return; }
@@ -324,8 +346,9 @@ public final class OfflineMapView extends FrameLayout {
                     j.put("lat", position.getLatitude()); j.put("lon", position.getLongitude());
                     j.put("bearing", position.hasBearing() ? position.getBearing() : 0); j.put("day", theme.day);
                     String key = c.region.id + ":" + revision;
-                    if (!key.equals(source)) { show(false); source = key; }
-                    badge.setText(L.s(R.string.maps_offline_badge) + " · " + c.region.name);
+                    if (!key.equals(source)) { mapReady = false; show(false); source = key; }
+                    mapName = c.region.name;
+                    positionState(true);
                     web.evaluateJavascript("window.updatePosition(" + j.toString() + ")", null);
                 } catch (Exception ignored) { rendererFailed(); }
             });

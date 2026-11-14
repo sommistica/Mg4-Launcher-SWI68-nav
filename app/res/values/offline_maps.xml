@@ -57,4 +57,5 @@
     <string name="maps_reason_coverage" formatted="false">No map data for this area</string>
     <string name="maps_reason_loading" formatted="false">Preparing offline map…</string>
     <string name="maps_reason_renderer" formatted="false">Map renderer error · retrying automatically</string>
+    <string name="maps_position_last_known" formatted="false">Last known position · GPS unavailable</string>
 </resources>
