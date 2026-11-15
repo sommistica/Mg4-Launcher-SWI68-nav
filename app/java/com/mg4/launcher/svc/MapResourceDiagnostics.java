@@ -6,7 +6,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 
-/** Independent, best-effort snapshots; no Debug.getMemoryInfo calls on vendor firmware. */
+/**
+ * EN: Read memory and disk independently so a failed measurement does not hide the others.
+ * Avoid Debug.getMemoryInfo on vendor firmware; use /proc/self/status for process RSS.
+ * IT: Leggi memoria e disco separatamente, senza perdere le altre misure se una fallisce.
+ * Evita Debug.getMemoryInfo sul firmware del produttore; usa /proc/self/status per la RSS.
+ */
 public final class MapResourceDiagnostics {
     private MapResourceDiagnostics() {}
     public static void sample(Context context) {

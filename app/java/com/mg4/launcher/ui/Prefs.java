@@ -54,6 +54,8 @@ public final class Prefs {
         sp.edit().putBoolean("blackRoof", b).apply();
     }
 
+    // EN: Offline maps are opt-in; downloads default to Wi-Fi only to limit mobile data use.
+    // IT: Le mappe offline sono facoltative; i download usano inizialmente solo Wi-Fi per limitare i dati mobili.
     public boolean offlineMaps() { return sp.getBoolean("offline_maps", false); }
     public void setOfflineMaps(boolean on) { sp.edit().putBoolean("offline_maps", on).apply(); }
     public boolean mapWifiOnly() { return sp.getBoolean("map_wifi_only", true); }

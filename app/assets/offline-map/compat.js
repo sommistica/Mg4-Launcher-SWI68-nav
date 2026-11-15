@@ -1,10 +1,11 @@
-/* Small ES2019 API shims for the MG head unit's Chromium/WebView 66.
- * Loaded before MapLibre in both the page and its dedicated worker. */
+/* EN: Supply missing APIs for Chromium/WebView 66 before MapLibre runs in the page and worker.
+ * IT: Fornisci le API mancanti di Chromium/WebView 66 prima di MapLibre nella pagina e nel worker. */
 (function () {
     'use strict';
     var root = typeof self !== 'undefined' ? self : window;
     if (typeof root.globalThis === 'undefined') root.globalThis = root;
-    // Older engines accept a transfer array, not the newer {transfer: ...} options.
+    // EN: Older engines need a transfer array instead of the newer {transfer: ...} options object.
+    // IT: I motori meno recenti richiedono un array di trasferimento invece del nuovo oggetto {transfer: ...}.
     function transferList(value) {
         return value && !Array.isArray(value) && typeof value === 'object' ? value.transfer || [] : value || [];
     }

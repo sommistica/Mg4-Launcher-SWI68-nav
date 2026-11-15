@@ -23,7 +23,12 @@ import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Local-only map surface. Location stays in memory and is never exposed to a remote WebView origin. */
+/**
+ * EN: Show local map tiles behind navigation cards; use a decorative fallback when the map is unavailable.
+ * Location stays in memory and is never exposed to a remote WebView origin.
+ * IT: Mostra tile locali dietro le schede di navigazione; usa uno sfondo decorativo se la mappa non e disponibile.
+ * La posizione resta in memoria e non viene mai esposta a un'origine WebView remota.
+ */
 public final class OfflineMapView extends FrameLayout {
     private enum Fallback { DISABLED, STORAGE, NO_MAPS, PAUSED, PERMISSION, NO_GPS, GPS_OFF, WAITING_GPS, STALE_GPS, NO_COVERAGE, LOADING, RENDERER }
     private Fallback fallback = Fallback.DISABLED;
@@ -66,9 +71,13 @@ public final class OfflineMapView extends FrameLayout {
             View content = getRootView().findViewById(android.R.id.content);
             showLicences(content instanceof FrameLayout ? (FrameLayout) content : this, theme);
         });
-        recenter = Ui.text(c, "⌖", 30, t.text, Ui.MEDIUM); recenter.setGravity(Gravity.CENTER);
+        // EN: Use a translated text label and content-sized width so Recenter cannot be mistaken for zoom.
+        // IT: Usa un'etichetta tradotta e larghezza adattata al testo per non confondere Ricentra con lo zoom.
+        recenter = Ui.text(c, L.s(R.string.maps_recenter), 18, t.text, Ui.MEDIUM); recenter.setGravity(Gravity.CENTER);
+        recenter.setSingleLine(true);
+        recenter.setPadding(dp(20), 0, dp(20), 0);
         recenter.setContentDescription(L.s(R.string.maps_recenter)); recenter.setBackground(Ui.round(t.overlay, dp(26)));
-        LayoutParams rl = new LayoutParams(dp(52), dp(52), Gravity.BOTTOM | Gravity.END); rl.setMargins(0, 0, dp(20), dp(40));
+        LayoutParams rl = new LayoutParams(-2, dp(52), Gravity.BOTTOM | Gravity.END); rl.setMargins(0, 0, dp(20), dp(40));
         addView(recenter, rl); recenter.setVisibility(GONE);
         recenter.setOnClickListener(v -> { if (web != null) web.evaluateJavascript("window.recenterMap()", null); });
     }
@@ -124,6 +133,8 @@ public final class OfflineMapView extends FrameLayout {
     }
     public void setForeground(boolean value) { foreground = value; refresh(); }
 
+    // EN: JavaScript is needed for MapLibre, but all resources are served locally and remote loads are blocked.
+    // IT: JavaScript serve a MapLibre, ma tutte le risorse sono locali e i caricamenti remoti sono bloccati.
     @SuppressLint("SetJavaScriptEnabled")
     private void createWeb() {
         if (web != null || failed || detached) return;
@@ -165,6 +176,8 @@ public final class OfflineMapView extends FrameLayout {
             web.loadUrl("https://" + HOST + "/index.html");
         } catch (Exception e) { MapDiagnostics.failure(MapDiagnostics.Failure.CREATE); MapDiagnostics.renderer(MapDiagnostics.Renderer.FAILED); rendererFailed(); }
     }
+    // EN: The synthetic HTTPS host serves bundled files and SQLite tiles; it is never contacted over the network.
+    // IT: L'host HTTPS fittizio fornisce file inclusi e tile SQLite; non viene mai contattato tramite rete.
     private WebResourceResponse resource(Uri u) {
         try {
             if (!"https".equals(u.getScheme()) || !HOST.equals(u.getHost())) return response(null, "text/plain");
@@ -227,6 +240,8 @@ public final class OfflineMapView extends FrameLayout {
         if (web != null && loaded) web.evaluateJavascript("window.setPositionFresh(" + live + ")", null);
     }
     private void showPosition(boolean live) { positionState(live); show(true); }
+    // EN: Coordinate storage, visibility and GPS; delay renderer disposal so brief interruptions recover quickly.
+    // IT: Coordina archivio, visibilita e GPS; ritarda la chiusura del renderer per recuperare da brevi interruzioni.
     public void refresh() {
         if (maps == null) return; // parent can dispatch visibility during construction
         maps.refreshStorage();
@@ -288,6 +303,8 @@ public final class OfflineMapView extends FrameLayout {
             com.mg4.launcher.svc.MapResourceDiagnostics.sample(getContext());
         }
     }
+    // EN: Back off repeated renderer failures to avoid a tight recreate loop on older head units.
+    // IT: Distanzia i tentativi dopo errori ripetuti del renderer per evitare riavvii continui sulle unita meno recenti.
     private void rendererFailed() {
         if (failed) return;
         failed = true;
@@ -318,7 +335,8 @@ public final class OfflineMapView extends FrameLayout {
             fallback(locationReason);
             if (locationReason != Fallback.PERMISSION && !failed && web != null
                     && MapLocationPolicy.retainRenderedMap(mapReady, fixAgeMs(fix))) {
-                // Retain the already covered area without presenting a stale marker as live.
+                // EN: Keep the rendered area during brief GPS loss, but dim the marker to show it is not live.
+                // IT: Conserva l'area disegnata durante brevi perdite GPS, attenuando il simbolo non aggiornato.
                 MapDiagnostics.coverage(true); showPosition(false);
             } else {
                 MapDiagnostics.coverage(false); show(false);
@@ -331,6 +349,8 @@ public final class OfflineMapView extends FrameLayout {
             if (SystemClock.elapsedRealtime() < retryAt) { fallback(Fallback.RENDERER); show(false); return; }
             releaseRenderer(); failed = false;
         }
+        // EN: Query coverage off the UI thread; the request token discards results from outdated requests.
+        // IT: Cerca la copertura fuori dal thread grafico; il token scarta risultati di richieste superate.
         final Location position = new Location(fix);
         io.execute(() -> {
             OfflineMaps.Coverage c = maps.coverage(position.getLatitude(), position.getLongitude());

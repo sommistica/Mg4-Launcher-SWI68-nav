@@ -1,8 +1,11 @@
-/* Local MBTiles only. No telemetry, remote fonts, geolocation API or route inference. */
+/* EN: Render local MBTiles using positions supplied by Android; no remote fonts, telemetry or route calculation.
+ * IT: Disegna MBTiles locali con posizioni fornite da Android; niente font remoti, telemetria o calcolo dei percorsi. */
 (function () {
     'use strict';
     var map, marker, position, key = '', following = true, timer, unhealthy = false;
     function unavailable(code) { unhealthy = true; OfflineMap.unavailable(typeof code === 'number' ? code : 3); }
+    // EN: Draw only roads, street labels and water; other downloaded layers remain stored but are not displayed.
+    // IT: Disegna solo strade, nomi stradali e acqua; gli altri livelli scaricati restano salvati ma non visualizzati.
     function style(p) {
         var day = p.day;
         var road = day ? '#aeb7c0' : '#555e6a', major = day ? '#7c8794' : '#85909e';
@@ -26,12 +29,20 @@
         marker.getElement().style.borderBottomColor = position.day ? '#111318' : '#f2f3f5';
         marker.getElement().style.filter = position.day ? 'drop-shadow(0 0 2px white)' : 'drop-shadow(0 0 2px black)';
         marker.setLngLat([position.lon,position.lat]).setRotation(position.bearing);
-        if (following) map.jumpTo({center:[position.lon,position.lat]});
+        // EN: While following, keep the car centered and its driving direction at the top.
+        // IT: Durante l'inseguimento, mantieni l'auto al centro e la direzione di marcia in alto.
+        if (following) map.jumpTo({center:[position.lon,position.lat],bearing:position.bearing});
     }
     window.setPositionFresh = function (fresh) {
         if (marker) marker.getElement().style.opacity = fresh ? '1' : '0.4';
     };
-    window.recenterMap = function () { following = true; move(); };
+    // EN: Recenter restores car following, heading-up orientation and the maximum allowed zoom.
+    // IT: Ricentra ripristina inseguimento dell'auto, direzione di marcia in alto e zoom massimo consentito.
+    window.recenterMap = function () {
+        following = true;
+        if (map) map.setZoom(map.getMaxZoom());
+        move();
+    };
     window.updatePosition = function (p) {
         position = p;
         try {
@@ -39,15 +50,19 @@
             if (!map) {
                 maplibregl.setWorkerUrl('https://offline.mg4.invalid/worker.js');
                 maplibregl.setWorkerCount(1);
-                map = new maplibregl.Map({container:'map',style:style(p),center:[p.lon,p.lat],zoom:14, minZoom:10,maxZoom:17,
+                // EN: Start at maximum zoom and disable manual map gestures; automatic following still works.
+                // IT: Avvia con lo zoom massimo e disabilita i gesti manuali; l'inseguimento automatico resta attivo.
+                map = new maplibregl.Map({container:'map',style:style(p),center:[p.lon,p.lat],zoom:17, minZoom:10,maxZoom:17,
+                    interactive:false,
                     maxTileCacheSize:32, pixelRatio:1, fadeDuration:0, antialias:false,
                     refreshExpiredTiles:false, collectResourceTiming:false,
                     attributionControl:false, pitchWithRotate:false, dragRotate:false, touchPitch:false, renderWorldCopies:false});
                 var el = document.createElement('div'); el.className='position';
                 marker = new maplibregl.Marker({element:el,rotationAlignment:'map'}).setLngLat([p.lon,p.lat]).addTo(map);
-                map.on('dragstart',function () { following=false; });
                 map.on('error',function (event) { unavailable(event.sourceId === 'local' ? 2 : 3); });
                 map.getCanvas().addEventListener('webglcontextlost',function () { unavailable(1); });
+                // EN: Reveal the map only after its style and local source have loaded; timeout triggers fallback.
+                // IT: Mostra la mappa solo dopo il caricamento di stile e sorgente locale; il timeout attiva lo sfondo di riserva.
                 map.on('idle',function () {
                     if (!unhealthy && map.isStyleLoaded() && map.isSourceLoaded('local')) { clearTimeout(timer); OfflineMap.visible(key); }
                 });

@@ -2,7 +2,12 @@ package com.mg4.launcher.ui;
 
 import com.mg4.launcher.R;
 
-/** Only codes observed in the MG logs; 0 confirmed by the driver's observation. */
+/**
+ * EN: Map only observed MG maneuver codes; code 0 was confirmed by the driver.
+ * Unknown codes get a neutral icon rather than a guessed driving instruction.
+ * IT: Associa solo codici MG osservati; il codice 0 e stato confermato dal guidatore.
+ * I codici sconosciuti ricevono un'icona neutra, senza inventare indicazioni di guida.
+ */
 public final class ManeuverIcons {
     private ManeuverIcons() {}
 

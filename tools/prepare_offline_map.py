@@ -13,6 +13,10 @@ import json
 import sqlite3
 from pathlib import Path
 
+# EN: Offline preparation only, not part of app downloads. Keep these layers; drop buildings,
+# addresses and separate place lookup tables when writing the new database.
+# IT: Preparazione separata, non usata nei download dell'app. Conserva questi livelli; elimina
+# edifici, indirizzi e tabelle di ricerca dei luoghi durante la creazione del nuovo database.
 KEEP = {"streets", "street_labels", "water_polygons", "water_lines", "land"}
 
 

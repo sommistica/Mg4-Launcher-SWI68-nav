@@ -1,6 +1,9 @@
 package com.mg4.launcher.svc;
 
-/** Download headroom; the map must not consume the last space needed by the car. */
+/**
+ * EN: Reserve 512 MiB internally or 256 MiB externally; count only the remaining download bytes.
+ * IT: Riserva 512 MiB interni o 256 MiB esterni; conta solo i byte ancora da scaricare.
+ */
 public final class MapStoragePolicy {
     private MapStoragePolicy() {}
     public static long reserve(boolean internal) {

@@ -2,7 +2,12 @@ package com.mg4.launcher.svc;
 
 import java.util.Locale;
 
-/** Allowlisted instruction types only: never pass arbitrary navigation text to logs. */
+/**
+ * EN: Convert known instructions to fixed categories; unknown text never enters the report.
+ * Reports contain only the maneuver code, category and distance, without road names or destinations.
+ * IT: Converti istruzioni note in categorie fisse; il testo sconosciuto non entra nel rapporto.
+ * I rapporti contengono solo codice, categoria e distanza, senza nomi di strade o destinazioni.
+ */
 public final class ManeuverReport {
     private ManeuverReport() {}
 

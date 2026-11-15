@@ -1,6 +1,11 @@
 package com.mg4.launcher.svc;
 
-/** Keep position freshness separate from the lifetime of already rendered map data. */
+/**
+ * EN: Accept live fixes for 30 seconds with accuracy within 200 m. Keep an existing map
+ * for up to two minutes during GPS loss; keep an inactive renderer warm for 30 seconds.
+ * IT: Accetta posizioni per 30 secondi con precisione entro 200 m. Conserva la mappa
+ * fino a due minuti senza GPS; mantieni il renderer inattivo pronto per 30 secondi.
+ */
 public final class MapLocationPolicy {
     public static final long LIVE_FIX_MS = 30_000;
     public static final long LAST_KNOWN_MAP_MS = 120_000;

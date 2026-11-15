@@ -1,6 +1,9 @@
 package com.mg4.launcher.svc;
 
-/** VmRSS is resident process memory, not PSS; -1 means unavailable. */
+/**
+ * EN: Convert Linux VmRSS from KiB to bytes; this is resident memory, not PSS. Return -1 if unavailable.
+ * IT: Converti VmRSS di Linux da KiB a byte; indica memoria residente, non PSS. Restituisci -1 se assente.
+ */
 public final class ProcessMemory {
     private ProcessMemory() {}
     public static long rssBytes(String line) {

@@ -230,6 +230,8 @@ public final class HomeView extends LinearLayout {
         return rhd;
     }
 
+    // EN: Forward activity visibility to the map so hidden screens do not keep GPS and rendering active.
+    // IT: Trasmetti la visibilita dell'attivita alla mappa per non mantenere GPS e disegno attivi a schermo nascosto.
     public void setMapForeground(boolean foreground) {
         if (offlineMap != null) offlineMap.setForeground(foreground);
     }
@@ -800,6 +802,8 @@ public final class HomeView extends LinearLayout {
 
     private View buildMapPanel(Context c) {
         FrameLayout f = new FrameLayout(c);
+        // EN: OfflineMapView owns the real map and its decorative fallback; navigation cards remain above it.
+        // IT: OfflineMapView gestisce mappa reale e sfondo di riserva; le schede di navigazione restano sopra.
         offlineMap = new OfflineMapView(c, t, prefs);
         f.addView(offlineMap, new FrameLayout.LayoutParams(-1, -1));
 
@@ -864,6 +868,8 @@ public final class HomeView extends LinearLayout {
         navCard = Ui.column(c);
         navCard.setBackground(Ui.round(t.overlay, dp(18)));
         navCard.setPadding(dp(22), dp(16), dp(26), dp(16));
+        // EN: Separate the maneuver icon, instruction and road name for a clearer driving display.
+        // IT: Separa icona della manovra, istruzione e strada per una lettura piu chiara durante la guida.
         LinearLayout maneuverRow = Ui.row(c);
         maneuverRow.setGravity(Gravity.CENTER_VERTICAL);
         navManeuverIcon = Ui.icon(c, R.drawable.ic_maneuver_unknown, t.text, 76);
@@ -890,6 +896,8 @@ public final class HomeView extends LinearLayout {
         cl.setMargins(dp(20), 0, dp(20), 0);
         f.addView(navCard, cl);
 
+        // EN: Keep the centered navigation card within the available panel width after layout changes.
+        // IT: Mantieni la scheda di navigazione centrata entro la larghezza disponibile dopo cambi di layout.
         f.addOnLayoutChangeListener((v, left, top, rightEdge, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
             if (rightEdge - left <= 0 || rightEdge - left == oldRight - oldLeft) return;
             FrameLayout.LayoutParams cardParams = (FrameLayout.LayoutParams) navCard.getLayoutParams();
@@ -925,6 +933,8 @@ public final class HomeView extends LinearLayout {
         FrameLayout.LayoutParams fallbackLp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
         fallbackLp.setMargins(dp(20), 0, dp(20), dp(66));
         f.addView(mapFallbackStatus, fallbackLp);
+        // EN: Hide decorative overlays for a real map; otherwise explain the fallback reason on screen.
+        // IT: Nascondi gli elementi decorativi con la mappa reale; altrimenti mostra il motivo dello sfondo di riserva.
         Runnable mapDisplayChanged = () -> {
             boolean showing = offlineMap.showingMap();
             veil.setVisibility(showing ? GONE : VISIBLE);
@@ -1033,6 +1043,8 @@ public final class HomeView extends LinearLayout {
         MediaClient.State m = media.last();
         boolean remote = m.deviceType != 0 && m.tbtActive;
         boolean guiding = n.navigating || remote;
+        // EN: Report only unknown native MG codes; phone navigation does not provide the same icon mapping.
+        // IT: Segnala solo codici MG nativi sconosciuti; la navigazione del telefono non usa la stessa associazione.
         int icon = ManeuverIcons.drawable(remote ? -1 : n.turnIcon);
         navManeuverIcon.setImageResource(icon);
         boolean missing = n.navigating && !remote && icon == R.drawable.ic_maneuver_unknown;

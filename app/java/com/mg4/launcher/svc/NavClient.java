@@ -102,7 +102,8 @@ public final class NavClient {
                     case 3: // roadInfoChange(String)
                         String road = data.readString();
                         pushRoad = road == null ? "" : road.trim();
-                        // Road is display-only; never include it in diagnostic logs.
+                        // EN: Road names are for display only; log fixed maneuver categories instead of raw instructions.
+                        // IT: I nomi delle strade servono solo alla vista; registra categorie fisse invece del testo originale.
                         break;
                     case 12: // remainingTimesChange(int)
                         pushRemainS = data.readInt();
@@ -268,7 +269,8 @@ public final class NavClient {
                 int unit = Rpc.callInt(b, GS, DIST_UNIT);
                 com.mg4.launcher.ui.Units.navUnit = unit;   // 1.0.0: serve per le miglia
                 Diag.put("nav.unitaDistanza", unit);
-                // Road is display-only; never include it in diagnostic logs.
+                // EN: Keep road names on screen and out of diagnostic logs.
+                // IT: Mantieni i nomi delle strade sullo schermo, fuori dai log diagnostici.
                 Diag.put("nav.app", s.mapPackage);
                 Diag.put("nav.appAttiva", Rpc.callBool(b, GS, NAV_ACTIVE));
             } catch (Exception e) {

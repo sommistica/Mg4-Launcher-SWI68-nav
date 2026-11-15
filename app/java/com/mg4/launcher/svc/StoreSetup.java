@@ -32,6 +32,8 @@ public final class StoreSetup {
 
     private StoreSetup() {}
 
+    // EN: Builds without a bundled Store APK must not offer an installation that cannot work.
+    // IT: Le build senza APK Store incluso non devono offrire un'installazione impossibile.
     public static boolean hasBundledStore(Context c) {
         try (InputStream in = c.getAssets().open(ASSET)) {
             return true;

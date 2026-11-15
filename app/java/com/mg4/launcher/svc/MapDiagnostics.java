@@ -2,7 +2,10 @@ package com.mg4.launcher.svc;
 
 import java.util.Locale;
 
-/** Map diagnostics accept fixed states/counters only, never positions, paths, URLs or exception messages. */
+/**
+ * EN: Report fixed states and resource counters without exposing positions, paths, URLs or exception messages.
+ * IT: Registra stati predefiniti e contatori di risorse senza esporre posizioni, percorsi, URL o messaggi di errore.
+ */
 public final class MapDiagnostics {
     public enum Renderer { NOT_CREATED, LOADING, READY, DISPLAYING, HIDDEN, RELEASED, FAILED }
     public enum Failure { CREATE, MAIN_DOCUMENT, PROCESS_EXIT, WEBGL, TILE_SOURCE, SCRIPT, TIMEOUT, RESOURCE, LIBRARY, WORKER, GLYPHS, REFERENCE, TYPE, DOWNLOAD, CHECKSUM, PACKAGE, STORAGE_SPACE, STORAGE_ACCESS }

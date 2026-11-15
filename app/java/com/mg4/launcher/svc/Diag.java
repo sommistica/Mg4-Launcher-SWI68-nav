@@ -228,6 +228,8 @@ public final class Diag {
 
     /** Testo completo del log: versione, valori attuali, eventi recenti, logcat del launcher (stesso formato della SWI69). */
     public static String buildLog(Context c) {
+        // EN: Refresh map memory and storage measurements before assembling the log.
+        // IT: Aggiorna le misure di memoria e spazio della mappa prima di preparare il log.
         MapResourceDiagnostics.sample(c);
         StringBuilder sb = new StringBuilder();
         String version = "?";

@@ -535,6 +535,8 @@ public final class MainActivity extends Activity implements HomeView.Host, AppsV
     @Override
     protected void onPause() {
         inFront = false;
+        // EN: Pause map work while another activity covers the launcher; allow a quick return.
+        // IT: Sospendi la mappa quando un'altra attivita copre il launcher; consenti un ritorno rapido.
         if (home != null) home.setMapForeground(false);
         super.onPause();
     }
@@ -543,6 +545,8 @@ public final class MainActivity extends Activity implements HomeView.Host, AppsV
     protected void onResume() {
         super.onResume();
         inFront = true;
+        // EN: Resume the map when the launcher becomes active again.
+        // IT: Riprendi la mappa quando il launcher torna attivo.
         if (home != null) home.setMapForeground(true);
         com.mg4.launcher.svc.RetroReturn.noteLauncherShown("ritorno nello stack (la telecamera era sopra il launcher)");
         // 1.0.3: tornando dall'app Radio l'elenco delle stazioni si rilegge subito

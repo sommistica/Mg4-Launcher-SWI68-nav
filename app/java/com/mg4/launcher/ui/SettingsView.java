@@ -1132,6 +1132,8 @@ public final class SettingsView extends FrameLayout {
         return String.format(L.locale(), "%.0f MB", bytes / 1048576.0);
     }
 
+    // EN: Offer offline-map activation, Wi-Fi policy, storage selection and per-region download controls.
+    // IT: Offri attivazione delle mappe offline, regola Wi-Fi, scelta archivio e comandi di download per regione.
     private void buildMaps(Context c, LinearLayout col) {
         com.mg4.launcher.svc.OfflineMaps maps = com.mg4.launcher.svc.OfflineMaps.get(c);
         maps.refreshStorage();
@@ -1206,6 +1208,8 @@ public final class SettingsView extends FrameLayout {
         return value;
     }
 
+    // EN: Rebuild choices after a drive change; otherwise update progress and disable conflicting actions.
+    // IT: Ricrea le scelte quando cambia un'unita; altrimenti aggiorna il progresso e disabilita azioni incompatibili.
     private void refreshMaps() {
         if (mapStorage == null) return;
         com.mg4.launcher.svc.OfflineMaps maps = com.mg4.launcher.svc.OfflineMaps.get(getContext());
@@ -1282,6 +1286,8 @@ public final class SettingsView extends FrameLayout {
         col.addView(card, topFull(14));
 
         // 1.0.4 (punto D): MG4 Store. Se l'utente l'ha tolto il launcher non lo rimette da solo: si reinstalla da qui
+        // EN: Offer Store installation only when this build actually bundles its APK.
+        // IT: Offri l'installazione dello Store solo se questa build include davvero il suo APK.
         if (com.mg4.launcher.svc.StoreSetup.installedCode(c) < 0
                 && com.mg4.launcher.svc.StoreSetup.hasBundledStore(c)) {
             card = card(c);

@@ -8,6 +8,8 @@ from pathlib import Path
 from html import escape
 
 ROOT = Path(__file__).resolve().parents[1]
+# EN: Keep generated vector artwork limited to observed maneuver codes; unknown codes use a neutral fallback.
+# IT: Limita le icone vettoriali generate ai codici osservati; usa un simbolo neutro per quelli sconosciuti.
 ICONS = [
     (0, "straight", "Straight ahead", "M12 21V3M7 8l5-5 5 5"),
     (1, "left", "Turn left", "M17 21V11a3 3 0 0 0-3-3H4M8 4L4 8l4 4"),

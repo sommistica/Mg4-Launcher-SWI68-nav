@@ -22,7 +22,12 @@ import java.security.MessageDigest;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
-/** App-private, checksum-verified MBTiles. No coordinates, tile IDs or region selections are logged. */
+/**
+ * EN: Manage complete MBTiles downloads in app-specific storage; verify them before installation.
+ * Map data stays unchanged: slimming is a separate desktop tool. Never log coordinates or tile IDs.
+ * IT: Gestisci download MBTiles completi nello spazio dell'app e verificali prima dell'installazione.
+ * I dati restano invariati: la riduzione e uno strumento desktop separato. Non registrare coordinate o ID tile.
+ */
 public final class OfflineMaps {
     public static final class Region {
         public final String id, name, version, url, sha256;
@@ -96,7 +101,12 @@ public final class OfflineMaps {
             for (Listener l : copy) l.changed();
         });
     }
-    /** Only app-specific directories on mounted Android-reported volumes; never scan camera folders. */
+    /**
+     * EN: Discover mounted Android volumes using app-specific directories, without scanning camera folders.
+     * An unplugged selected drive stays unavailable rather than silently switching map storage.
+     * IT: Cerca volumi Android montati nelle cartelle dell'app, senza esaminare quelle della telecamera.
+     * Se l'unita selezionata viene scollegata, resta indisponibile senza cambiare archivio automaticamente.
+     */
     public synchronized void refreshStorage() {
         if (SystemClock.elapsedRealtime() < nextStorageCheck) return;
         nextStorageCheck = SystemClock.elapsedRealtime() + 2000;
@@ -198,6 +208,8 @@ public final class OfflineMaps {
         file(r).delete(); partial(r).delete(); partialStamp(r).delete(); stamp(r).delete();
         revision++; publishStorageDiagnostics(); changed();
     }
+    // EN: Download to a partial file, then check the checksum and database before atomic replacement.
+    // IT: Scarica in un file parziale, poi verifica hash e database prima della sostituzione atomica.
     public synchronized boolean download(Region r, boolean wifiOnly) {
         if (busy()) return false;
         if (dir == null || (!dir.isDirectory() && !dir.mkdirs()) || !dir.canWrite()) {
@@ -241,6 +253,8 @@ public final class OfflineMaps {
         final MapDiagnostics.Failure reason;
         DownloadFailure(MapDiagnostics.Failure reason) { this.reason = reason; }
     }
+    // EN: Resume only the same catalog package; restart if the server ignores the requested byte range.
+    // IT: Riprendi solo lo stesso pacchetto del catalogo; ricomincia se il server ignora l'intervallo richiesto.
     private void transfer(Region r, boolean wifiOnly) throws Exception {
         if (wifiOnly && !wifi()) throw new InterruptedIOException();
         String previous = "";
