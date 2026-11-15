@@ -45,12 +45,32 @@ after verification, so a failed update keeps the existing map. An update is
 offered when a later launcher ships a newer catalog entry; no remote catalog or
 automatic update requests are made.
 
-During navigation, the map follows a recent GPS fix, with day/night colours,
-street labels, water, a position marker, and a recenter control. Dragging stops
-following until recentered. It does not draw MG's route, recalculate directions,
+During navigation, the map follows a recent GPS fix and rotates with the car's
+heading, with day/night colours, street labels, water, a position marker, and a
+recenter control. It starts at the maximum allowed zoom (17). Manual dragging
+and zoom gestures are disabled; Recenter restores following and maximum zoom.
+It does not draw MG's route, recalculate directions,
 or display live traffic. Existing navigation instructions, ETA and the
 missing-icon report button remain separate overlays. The button still appears
 for unknown MG maneuver codes, with or without a map.
+
+Street names use 18-pixel text (previously 12), placed along road lines rather
+than at line vertices. Labels remain upright as the map rotates, with a
+two-pixel background-coloured halo for contrast. Normal collision handling
+still hides labels that overlap; not every road name is shown simultaneously.
+
+The temporary label diagnostics were removed after the in-car investigation.
+They confirmed named features and font loading, with some labels reported as
+rendered; they did not prove those labels were readable on the screen. The
+permanent renderer, GPS and resource-failure diagnostics remain in place.
+
+IT: La mappa segue l'auto e ruota nella direzione di marcia, con zoom iniziale
+massimo (17). Trascinamento e zoom manuale sono disabilitati. Ricentra ripristina
+inseguimento e zoom massimo. I nomi delle strade passano da 12 a 18 pixel,
+seguono le linee stradali e restano dritti durante la rotazione, con contorno
+di due pixel per migliorare il contrasto. I nomi sovrapposti restano nascosti.
+La diagnostica temporanea e stata rimossa dopo la prova; i controlli permanenti
+di renderer, GPS e caricamento delle risorse restano attivi.
 
 The decorative background remains visible when disabled, outside downloaded
 coverage, with no actual tile at the current position, without permission or a

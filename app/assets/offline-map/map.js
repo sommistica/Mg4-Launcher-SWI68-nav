@@ -18,9 +18,12 @@
                 { id:'waterways', type:'line', source:'local', 'source-layer':'water_lines', paint:{'line-color':day?'#b6d5e5':'#20364e','line-width':2} },
                 { id:'roads', type:'line', source:'local', 'source-layer':'streets', layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':road,'line-width':['interpolate',['linear'],['zoom'],10,1,14,3,17,8]} },
                 { id:'major', type:'line', source:'local', 'source-layer':'streets', filter:['in','kind','motorway','trunk','primary'], layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':major,'line-width':['interpolate',['linear'],['zoom'],10,2,14,5,17,12]} },
+                // EN: Larger labels follow road lines and stay upright as the map rotates with the car.
+                // IT: Nomi piu grandi seguono le strade e restano leggibili quando la mappa ruota con l'auto.
                 { id:'names', type:'symbol', source:'local', 'source-layer':'street_labels', minzoom:12,
-                    layout:{'text-field':['coalesce',['get','name'],['get','ref'],''],'text-font':['Noto Sans Regular'],'text-size':12,'text-max-width':12},
-                    paint:{'text-color':day?'#343b43':'#c6cbd2','text-halo-color':day?'#eef0f2':'#1a1d22','text-halo-width':1.5} }
+                    layout:{'symbol-placement':'line','text-keep-upright':true,
+                        'text-field':['coalesce',['get','name'],['get','ref'],''],'text-font':['Noto Sans Regular'],'text-size':18,'text-max-width':12},
+                    paint:{'text-color':day?'#343b43':'#c6cbd2','text-halo-color':day?'#eef0f2':'#1a1d22','text-halo-width':2} }
             ]
         };
     }

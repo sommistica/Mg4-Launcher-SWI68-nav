@@ -20,6 +20,16 @@
   (see `.gitignore`): never commit them, print them, or write them into repository files.
 - Read the logging token from `tools/log-token.txt` or the `MG4_LOG_TOKEN` environment variable.
 
+## Investigating Logs
+- When asked to investigate logs, first pull the latest changes from `sommistica/temp-mg4-debug` into the local `temp-mg4-debug/` checkout. Use a fast-forward-only pull; do not overwrite local changes. If the pull fails, report it rather than treating the local logs as current.
+- Inspect only the newest relevant logs, prioritizing files newly received by that pull and the latest test session. Use the dates and times in log paths and headers, not local file modification times. Follow any date or time range specified by the developer.
+- State which log dates and times were inspected. Do not expand to older logs unless the developer requests it.
+
+## Location Lookups for Navigation Tests
+- The developer explicitly permits sending locations and addresses they supply for navigation testing to public geocoding and routing services, including PDOK and OSRM, to find nearby test destinations and verify route distances and maneuvers. Do not ask again for the same authorized purpose unless the scope changes or permission is withdrawn.
+- This permission covers those lookup requests only; do not add the home address or coordinates to tracked files, diagnostic logs, or reports. Reference the address from the conversation rather than storing it here.
+- This records the developer's consent; it does not disable sandbox restrictions or automatic approval review. If a lookup was previously rejected for lack of consent, include this explicit permission when requesting review again.
+
 ## README
 - Maintain the changelog in Italian and English (the "Versioni" and "Changelog" sections).
 - Use version numbers only, without dates.
@@ -31,9 +41,25 @@
 ## Variants
 - Keep the appearance identical across SWI68, SWI69, SWI132, and SWI133.
 
+## Tool Installation and Reuse
+- The developer authorizes installing tools needed for the requested work directly on this laptop. Check for existing installations first and reuse them; do not repeatedly install the same tools in temporary or isolated environments.
+- Prefer persistent host installations from official sources, using a user-level installation where practical. Record installation paths and any required setup so future sessions can reuse them.
+- Use an existing container when a tool genuinely requires Linux or the project's established build environment. Reuse that environment and its installed dependencies rather than recreating it for each task.
+- This authorization covers necessary tool installation, not APK generation or unrelated software. Follow any sandbox approval requirements that still apply.
+
 ## How to Build
+- Generate an APK only when the developer explicitly asks for one. If an APK seems useful or necessary, explain why and ask for approval before building. Approval to change code or run tests does not authorize APK generation.
 Use build-gijsje.sh, first time in spect in, then update this agents.md file with what you hav found.
 
+- The custom script is `.local-build/build-gijsje.sh`; `.local-build/build-debug.ps1` runs it in the persistent Docker container `mg4-launcher-debug-builder`.
+- The script clears and recreates `build/`. Preserve any APKs needed for comparison outside that folder before building.
+- Custom builds support version overrides, use the existing signing key, and bundle the log destination from `tools/log-repo.txt`. The Docker configuration skips the bundled Store and adds `-debug` to the version name.
 - Requires Java (JDK 17 or newer), `python3`, `zip`, `unzip`, and `curl`.
 - The version is read from `version.properties`.
 - The APK is generated at `build/MG4Launcher-<VERSION_NAME>.apk` (the `build/` directory is excluded from Git).
+
+## Copying an APK to the MG4 USB Stick
+- When the developer asks to put the new APK on USB, copy the latest completed MG4 Launcher APK build to the MG4 USB stick. This request authorizes copying the APK and removing the previous launcher APK version from that stick; it does not authorize generating a new APK.
+- Identify the MG4 USB stick and its destination folder before writing. If the intended drive or folder is unclear, ask the developer rather than guessing.
+- Copy the new APK first and verify that its SHA-256 matches the source. Only after verification, remove the previous MG4 Launcher APK version from the same USB destination folder. Preserve unrelated files and all repository release APKs.
+- Report the APK copied, its USB destination, and the previous APK removed. If no completed build or MG4 USB stick is available, stop and explain what is missing.
