@@ -39,10 +39,26 @@
     window.setPositionFresh = function (fresh) {
         if (marker) marker.getElement().style.opacity = fresh ? '1' : '0.4';
     };
-    // EN: Recenter restores car following, heading-up orientation and the maximum allowed zoom.
-    // IT: Ricentra ripristina inseguimento dell'auto, direzione di marcia in alto e zoom massimo consentito.
+    // EN: Unlocking enables pan/zoom and pauses following; rotation and tilt stay disabled.
+    // IT: Sbloccare abilita spostamento/zoom e sospende l'inseguimento; rotazione e inclinazione restano disabilitate.
+    function setLocked(locked) {
+        following = locked;
+        if (map) {
+            map.stop();
+            [map.dragPan, map.scrollZoom, map.boxZoom, map.doubleClickZoom, map.touchZoomRotate].forEach(function (handler) {
+                if (locked) handler.disable(); else handler.enable();
+            });
+            map.touchZoomRotate.disableRotation();
+        }
+        OfflineMap.locked(locked);
+    }
+    window.toggleMapLock = function () {
+        if (following) setLocked(false); else window.recenterMap();
+    };
+    // EN: Lock/recenter restores following, heading-up orientation and the normal navigation zoom.
+    // IT: Blocca/ricentra ripristina inseguimento, direzione di marcia in alto e zoom normale di navigazione.
     window.recenterMap = function () {
-        following = true;
+        setLocked(true);
         if (map) map.setZoom(map.getMaxZoom());
         move();
     };
@@ -53,13 +69,14 @@
             if (!map) {
                 maplibregl.setWorkerUrl('https://offline.mg4.invalid/worker.js');
                 maplibregl.setWorkerCount(1);
-                // EN: Start at maximum zoom and disable manual map gestures; automatic following still works.
-                // IT: Avvia con lo zoom massimo e disabilita i gesti manuali; l'inseguimento automatico resta attivo.
+                // EN: Register gesture handlers, then lock them before displaying the map.
+                // IT: Registra i gestori dei gesti, poi bloccali prima di mostrare la mappa.
                 map = new maplibregl.Map({container:'map',style:style(p),center:[p.lon,p.lat],zoom:17, minZoom:10,maxZoom:17,
-                    interactive:false,
+                    interactive:true, keyboard:false,
                     maxTileCacheSize:32, pixelRatio:1, fadeDuration:0, antialias:false,
                     refreshExpiredTiles:false, collectResourceTiming:false,
                     attributionControl:false, pitchWithRotate:false, dragRotate:false, touchPitch:false, renderWorldCopies:false});
+                setLocked(true);
                 var el = document.createElement('div'); el.className='position';
                 marker = new maplibregl.Marker({element:el,rotationAlignment:'map'}).setLngLat([p.lon,p.lat]).addTo(map);
                 map.on('error',function (event) { unavailable(event.sourceId === 'local' ? 2 : 3); });
@@ -72,7 +89,7 @@
                 key = nextKey;
                 timer = setTimeout(function () { unavailable(4); },15000);
             } else if (key !== nextKey) {
-                key = nextKey; map.setStyle(style(p)); following = true;
+                key = nextKey; map.setStyle(style(p));
                 clearTimeout(timer); timer=setTimeout(function () { unavailable(4); },15000);
             }
             move();

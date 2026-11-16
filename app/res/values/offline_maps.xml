@@ -24,6 +24,8 @@
     <string name="maps_failed" formatted="false">Download failed; check connection and free storage, then retry</string>
     <string name="maps_storage" formatted="false">Maps and partial downloads: %s · Free: %s</string>
     <string name="maps_recenter" formatted="false">Recenter map</string>
+    <string name="maps_locked" formatted="false">Map locked, following the car. Tap to unlock dragging and zoom.</string>
+    <string name="maps_unlocked" formatted="false">Map unlocked, following paused. Tap to recenter, restore zoom and lock.</string>
     <string name="maps_offline_badge" formatted="false">Offline</string>
     <string name="missing_icon_send" formatted="false">Send missing icon log to developer</string>
     <string name="missing_icon_code" formatted="false">Missing icon: code %d</string>

@@ -11,6 +11,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.webkit.*;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.mg4.launcher.L;
 import com.mg4.launcher.R;
@@ -40,8 +42,11 @@ public final class OfflineMapView extends FrameLayout {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final LocationManager locations;
-    private final TextView badge, attribution, recenter;
+    private final TextView badge, attribution;
+    private final ImageView mapLock, recenter;
+    private final LinearLayout mapControls;
     private WebView web;
+    private boolean mapLocked = true;
     private Location fix;
     private boolean foreground = true, tracking, loaded, shown, failed, detached, releaseScheduled, mapReady;
     private int request, rendererId, failureCount;
@@ -71,15 +76,35 @@ public final class OfflineMapView extends FrameLayout {
             View content = getRootView().findViewById(android.R.id.content);
             showLicences(content instanceof FrameLayout ? (FrameLayout) content : this, theme);
         });
-        // EN: Use a translated text label and content-sized width so Recenter cannot be mistaken for zoom.
-        // IT: Usa un'etichetta tradotta e larghezza adattata al testo per non confondere Ricentra con lo zoom.
-        recenter = Ui.text(c, L.s(R.string.maps_recenter), 18, t.text, Ui.MEDIUM); recenter.setGravity(Gravity.CENTER);
-        recenter.setSingleLine(true);
-        recenter.setPadding(dp(20), 0, dp(20), 0);
+        // EN: Use the mockup's target icon, with the same size as the lock and a translated accessibility label.
+        // IT: Usa l'icona bersaglio del mockup, con le dimensioni del lucchetto e una descrizione accessibile tradotta.
+        recenter = new ImageView(c); recenter.setImageResource(R.drawable.ic_map_recenter);
+        recenter.setScaleType(ImageView.ScaleType.FIT_CENTER); recenter.setFocusable(true);
+        recenter.setColorFilter(t.text); recenter.setPadding(dp(14), dp(14), dp(14), dp(14));
         recenter.setContentDescription(L.s(R.string.maps_recenter)); recenter.setBackground(Ui.round(t.overlay, dp(26)));
+        // EN: Keep the lock immediately left of Recenter, with equal button sizes.
+        // IT: Mantieni il lucchetto subito a sinistra di Ricentra, con pulsanti di uguale dimensione.
+        mapControls = new LinearLayout(c); mapControls.setOrientation(LinearLayout.HORIZONTAL);
+        mapLock = new ImageView(c); mapLock.setPadding(dp(14), dp(14), dp(14), dp(14));
+        mapLock.setScaleType(ImageView.ScaleType.FIT_CENTER); mapLock.setFocusable(true);
+        mapControls.addView(mapLock, new LinearLayout.LayoutParams(dp(52), dp(52)));
+        LinearLayout.LayoutParams rc = new LinearLayout.LayoutParams(dp(52), dp(52)); rc.setMarginStart(dp(10));
+        mapControls.addView(recenter, rc);
         LayoutParams rl = new LayoutParams(-2, dp(52), Gravity.BOTTOM | Gravity.END); rl.setMargins(0, 0, dp(20), dp(40));
-        addView(recenter, rl); recenter.setVisibility(GONE);
+        addView(mapControls, rl); mapControls.setVisibility(GONE);
+        showMapLock(true);
+        mapLock.setOnClickListener(v -> { if (web != null) web.evaluateJavascript("window.toggleMapLock()", null); });
         recenter.setOnClickListener(v -> { if (web != null) web.evaluateJavascript("window.recenterMap()", null); });
+    }
+    // EN: Closed/open icons and a blue active background show the state without relying on colour alone.
+    // IT: Icone chiusa/aperta e sfondo blu attivo mostrano lo stato senza dipendere solo dal colore.
+    private void showMapLock(boolean locked) {
+        mapLocked = locked;
+        mapLock.setImageResource(locked ? R.drawable.ic_map_locked : R.drawable.ic_map_unlocked);
+        mapLock.setColorFilter(locked ? android.graphics.Color.WHITE : theme.text);
+        mapLock.setBackground(Ui.round(locked ? 0xFF007AC2 : theme.overlay, dp(26)));
+        mapLock.setSelected(locked);
+        mapLock.setContentDescription(L.s(locked ? R.string.maps_locked : R.string.maps_unlocked));
     }
     public static void showLicences(FrameLayout parent, Theme theme) {
         Confirm.notice(parent, theme, L.s(R.string.maps_licences), "",
@@ -131,7 +156,10 @@ public final class OfflineMapView extends FrameLayout {
         } catch (Exception ignored) { return Fallback.NO_GPS; }
         return fix == null ? Fallback.WAITING_GPS : !fresh(fix) ? Fallback.STALE_GPS : null;
     }
-    public void setForeground(boolean value) { foreground = value; refresh(); }
+    public void setForeground(boolean value) {
+        if (value && !foreground && web != null && loaded) web.evaluateJavascript("window.recenterMap()", null);
+        foreground = value; refresh();
+    }
 
     // EN: JavaScript is needed for MapLibre, but all resources are served locally and remote loads are blocked.
     // IT: JavaScript serve a MapLibre, ma tutte le risorse sono locali e i caricamenti remoti sono bloccati.
@@ -142,6 +170,14 @@ public final class OfflineMapView extends FrameLayout {
             fallback(Fallback.LOADING);
             final int renderer = ++rendererId;
             web = new WebView(getContext()); web.setAlpha(0f); web.setVisibility(VISIBLE);
+            showMapLock(true);
+            // EN: While exploring, keep horizontal drags and pinches away from the page swipe handler.
+            // IT: Durante l'esplorazione, evita che trascinamenti orizzontali e pizzichi cambino pagina.
+            web.setOnTouchListener((v, event) -> {
+                if (!mapLocked && event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN)
+                    v.getParent().requestDisallowInterceptTouchEvent(true);
+                return false;
+            });
             MapDiagnostics.renderer(MapDiagnostics.Renderer.LOADING);
             android.content.pm.PackageInfo webPackage = WebView.getCurrentWebViewPackage();
             MapDiagnostics.version(webPackage == null ? null : webPackage.versionName);
@@ -153,6 +189,7 @@ public final class OfflineMapView extends FrameLayout {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW); s.setBlockNetworkLoads(true);
             s.setSaveFormData(false); s.setMediaPlaybackRequiresUserGesture(true);
             web.addJavascriptInterface(new Object() {
+                @JavascriptInterface public void locked(boolean value) { main.post(() -> { if (renderer == rendererId) showMapLock(value); }); }
                 @JavascriptInterface public void ready() { main.post(() -> { if (renderer != rendererId) return; loaded = true; MapDiagnostics.renderer(MapDiagnostics.Renderer.READY); update(); }); }
                 @JavascriptInterface public void visible(String key) { main.post(() -> { if (renderer == rendererId && !failed && eligible() && fresh(fix) && !source.isEmpty() && source.equals(key)) showPosition(true); }); }
                 @JavascriptInterface public void unavailable(int reason) { main.post(() -> { if (renderer != rendererId) return;
@@ -219,7 +256,7 @@ public final class OfflineMapView extends FrameLayout {
             web.setAlpha(value ? 1f : 0f);
             web.setVisibility(value || eligible() ? VISIBLE : INVISIBLE);
         }
-        badge.setVisibility(value ? VISIBLE : GONE); attribution.setVisibility(value ? VISIBLE : GONE); recenter.setVisibility(value ? VISIBLE : GONE);
+        badge.setVisibility(value ? VISIBLE : GONE); attribution.setVisibility(value ? VISIBLE : GONE); mapControls.setVisibility(value ? VISIBLE : GONE);
         if (changed && displayChanged != null) displayChanged.run();
     }
     private boolean eligible() { return !detached && isAttachedToWindow() && getWindowVisibility() == VISIBLE && foreground && isShown() && prefs.offlineMaps(); }

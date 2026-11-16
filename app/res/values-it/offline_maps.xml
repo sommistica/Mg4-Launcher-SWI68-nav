@@ -24,6 +24,8 @@
     <string name="maps_failed" formatted="false">Download non riuscito; controlla connessione e spazio libero, poi riprova</string>
     <string name="maps_storage" formatted="false">Mappe e download parziali: %s · Liberi: %s</string>
     <string name="maps_recenter" formatted="false">Centra la mappa</string>
+    <string name="maps_locked" formatted="false">Mappa bloccata, segue il veicolo. Tocca per abilitare spostamento e zoom.</string>
+    <string name="maps_unlocked" formatted="false">Mappa sbloccata, inseguimento sospeso. Tocca per ricentrare, ripristinare lo zoom e bloccare.</string>
     <string name="maps_offline_badge" formatted="false">Offline</string>
     <string name="missing_icon_send" formatted="false">Invia la segnalazione di icona mancante allo sviluppatore</string>
     <string name="missing_icon_code" formatted="false">Icona mancante: codice %d</string>

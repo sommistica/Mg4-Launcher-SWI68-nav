@@ -274,6 +274,14 @@ Anche solo **2 €** sono un aiuto prezioso per continuare a sviluppare e provar
 
 ### Versioni
 
+#### 1.0.4.10
+- **Icona Ricentra**: bersaglio con punto centrale al posto del testo, delle stesse dimensioni del lucchetto, con descrizione accessibile tradotta.
+- **Blocco mappa**: nuovo lucchetto a sinistra di Ricentra, blu quando attivo. La mappa parte bloccata e segue il veicolo; sbloccandola si sospende l'inseguimento e si abilitano trascinamento e zoom. Ricentra o il blocco ripristinano posizione, direzione e zoom di navigazione, riattivando inseguimento e blocco. Da verificare in auto.
+
+#### 1.0.4.9
+- **Nomi delle strade piu leggibili**: testo da 12 a 18 pixel, disposto lungo le strade e sempre dritto durante la rotazione, con contorno di due pixel. Da verificare in auto.
+- **Pulizia del debug**: rimossa la diagnostica temporanea delle etichette; rimossi i controlli transitori dei vecchi rapporti in coda. Il formato delle nuove segnalazioni resta invariato.
+
 #### 1.0.4.8
 - **Icone di navigazione complete**: gestiti i 40 codici (0–39) verificati nell'APK MG originale, con nuove icone vettoriali per manovre, rotonde, traghetto, pedaggio e tappe.
 - **Codice 0 invariato**: freccia dritto/continua, anche quando il testo annuncia una manovra lontana. I codici sconosciuti mantengono la segnalazione manuale.
@@ -894,6 +902,14 @@ Even just **€2** is a great help to keep developing and testing new versions i
 [![Buy me a coffee with PayPal](https://img.shields.io/badge/Buy%20me%20a%20coffee-PayPal-0070BA?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/ErnestoMicco?locale.x=it_IT&country.x=IT)
 
 ### Changelog
+
+#### 1.0.4.10
+- **Recenter icon**: target with a central dot replaces the text, matching the lock button size, with a translated accessibility description.
+- **Map lock**: new padlock left of Recenter, highlighted blue when active. The map starts locked and follows the car; unlocking pauses following and enables dragging and zoom. Recenter or locking restores the car position, heading and navigation zoom, resuming following and locking the map. Pending in-car verification.
+
+#### 1.0.4.9
+- **More readable street names**: increase text from 12 to 18 pixels, follow road lines and keep labels upright during rotation, with a two-pixel halo. Pending in-car verification.
+- **Debug cleanup**: remove temporary label diagnostics and transitional checks for old queued reports. The new-report format is unchanged.
 
 #### 1.0.4.8
 - **Complete navigation icon coverage**: handle all 40 codes (0–39) verified in the original MG APK, with new vector icons for maneuvers, roundabouts, ferries, toll booths and waypoints.

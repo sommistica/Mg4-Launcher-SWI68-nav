@@ -1,0 +1,6 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <!-- EN: Target with four crosshair ticks and a central dot, matching the mockup. -->
+    <!-- IT: Bersaglio con quattro tacche e punto centrale, come nel mockup. -->
+    <path android:pathData="M19 12a7 7 0 1 1 -14 0a7 7 0 1 1 14 0M12 2v3M12 19v3M2 12h3M19 12h3" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round"/>
+    <path android:pathData="M13.2 12a1.2 1.2 0 1 1 -2.4 0a1.2 1.2 0 1 1 2.4 0" android:fillColor="#FFFFFFFF"/>
+</vector>
